@@ -1,0 +1,1824 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="瞬記">
+<meta name="theme-color" content="#000000">
+<link rel="apple-touch-icon" id="appIcon" href="">
+<title>瞬記</title>
+<style>
+:root{
+  --bg:#000; --bg2:#0b0b0c; --panel:#17171a; --panel2:#1f1f23; --line:#2c2c31;
+  --text:#f5f5f7; --dim:#a4a4ac; --accent:#ff8a1f; --accent2:#ffb15c; --danger:#ff4d4f;
+  --sat:env(safe-area-inset-top,0px); --sab:env(safe-area-inset-bottom,0px);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;margin:0;padding:0}
+html,body{height:100%;background:var(--bg);color:var(--text);overflow:hidden;
+  font-family:-apple-system,"SF Pro Text","PingFang TC","Helvetica Neue",sans-serif;-webkit-user-select:none;user-select:none}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+input{font:inherit}
+[hidden]{display:none!important}
+.view{position:fixed;inset:0;display:none;flex-direction:column;background:var(--bg2)}
+.view.on{display:flex}
+.small{font-size:12px;color:var(--dim);line-height:1.6}
+.primary{background:var(--accent);color:#fff;font-weight:700;padding:14px 30px;border-radius:99px;font-size:16px}
+.primary:active{opacity:.85}
+.pill{padding:8px 14px;border-radius:99px;background:var(--panel2);font-size:14px;font-weight:600}
+.pill.orange{background:var(--accent);color:#fff}
+.pill.danger{color:var(--danger)}
+.iconBtn{width:44px;height:44px;flex:none;border-radius:50%;display:grid;place-items:center;background:rgba(0,0,0,.45);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
+.iconBtn svg{width:20px;height:20px}
+.iconBtn.big{width:52px;height:52px}
+.iconBtn.big svg{width:24px;height:24px}
+header{display:flex;align-items:center;justify-content:space-between;padding:calc(var(--sat) + 10px) 14px 8px;gap:10px;flex:none}
+header b{font-size:17px}
+header .iconBtn{background:var(--panel2)}
+.spacer{flex:1;min-height:8px}
+.grow{flex:1}
+.lab{width:64px;flex:none;font-size:13px;color:var(--dim)}
+.val{width:42px;flex:none;text-align:right;font-size:12px;color:var(--dim)}
+.row{display:flex;align-items:center;gap:10px}
+.card2{margin:0 14px calc(var(--sab) + 14px);padding:14px;border-radius:16px;background:var(--panel);display:flex;flex-direction:column;gap:12px;flex:none}
+.chips{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;flex:none}
+.chips::-webkit-scrollbar{display:none}
+.chips button{flex:none;height:32px;padding:0 12px;border-radius:99px;background:var(--panel2);font-size:13px;color:#d0d0d6}
+.chips button.on{background:#fff;color:#000;font-weight:600}
+.hint2{text-align:center;font-size:13px;color:var(--dim);margin:8px 16px 0;flex:none}
+.sw{position:relative;width:46px;height:28px;flex:none;display:inline-block}
+.sw input{display:none}
+.sw i{position:absolute;inset:0;border-radius:99px;background:var(--line);transition:.2s}
+.sw i::after{content:"";position:absolute;left:3px;top:3px;width:22px;height:22px;border-radius:50%;background:#fff;transition:.2s}
+.sw input:checked+i{background:#34c759}
+.sw input:checked+i::after{left:21px}
+.rng{-webkit-appearance:none;appearance:none;flex:1;min-width:0;height:28px;background:transparent}
+.rng::-webkit-slider-runnable-track{height:4px;border-radius:2px;background:var(--line)}
+.rng::-webkit-slider-thumb{-webkit-appearance:none;width:24px;height:24px;border-radius:50%;background:#fff;margin-top:-10px;box-shadow:0 1px 4px rgba(0,0,0,.5)}
+.slot{flex:none;position:relative;display:flex;align-items:center;justify-content:center}
+#pvCanvas{display:block;border-radius:16px;background:#111;touch-action:none}
+.hidv{position:fixed;left:0;top:0;width:2px;height:2px;opacity:.01;pointer-events:none}
+#toast{position:fixed;left:50%;bottom:calc(var(--sab) + 170px);transform:translateX(-50%) translateY(10px);background:rgba(30,30,32,.96);padding:10px 16px;border-radius:12px;font-size:14px;opacity:0;transition:all .25s;pointer-events:none;z-index:60;max-width:88vw;text-align:center}
+#toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+.tabs{display:flex;gap:4px;margin:10px 14px 0;padding:4px;border-radius:12px;background:var(--panel2);flex:none}
+.tabs button{flex:1;height:34px;border-radius:9px;color:#c4c4ca;font-size:14px}
+.tabs button.on{background:#3a3a40;color:#fff;font-weight:600}
+
+/* ---------- Camera ---------- */
+#vCam{background:#000}
+#cam{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+#cam.mirror{transform:scaleX(-1)}
+#flash{position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none;transition:opacity .35s}
+#flash.on{opacity:.55;transition:none}
+.camTop{position:absolute;left:0;right:0;top:calc(var(--sat) + 12px);display:flex;justify-content:space-between;align-items:center;padding:0 16px;z-index:2}
+.badge{background:rgba(0,0,0,.45);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);padding:8px 14px;border-radius:99px;font-size:13px;font-weight:600}
+.recTimer{position:absolute;top:calc(var(--sat) + 66px);left:50%;transform:translateX(-50%);background:#e5484d;padding:6px 14px;border-radius:99px;font-size:13px;font-weight:700;z-index:2}
+.camBottom{position:absolute;left:0;right:0;bottom:0;padding:30px 0 calc(var(--sab) + 22px);z-index:2;background:linear-gradient(transparent,rgba(0,0,0,.55) 30%)}
+.durs{display:flex;justify-content:center;gap:6px;margin:0 auto 10px}
+.durs button{min-width:48px;height:32px;border-radius:99px;font-size:14px;font-weight:600;color:#e6e6e6;background:rgba(0,0,0,.4)}
+.durs button.on{background:#fff;color:#000}
+.hint{text-align:center;font-size:13px;color:#eee;margin-bottom:14px;text-shadow:0 1px 3px rgba(0,0,0,.6)}
+.ctrls{display:flex;align-items:center;justify-content:space-between;padding:0 36px}
+.galBtn{width:56px;height:56px;border-radius:14px;overflow:hidden;border:2px solid #fff;position:relative;background:#222}
+.galBtn img{width:100%;height:100%;object-fit:cover;display:block}
+.galBtn span{position:absolute;right:-1px;top:-1px;background:var(--accent);font-size:11px;font-weight:700;min-width:20px;padding:1px 5px;border-radius:0 12px 0 8px}
+.galBtn span:empty{display:none}
+#shutter{width:86px;height:86px;position:relative;display:grid;place-items:center}
+#shutter svg{position:absolute;inset:0;transform:rotate(-90deg)}
+#shutter circle{fill:none;stroke-width:5}
+.ringBg{stroke:#fff}
+#ring{stroke:var(--accent);stroke-dasharray:245;stroke-dashoffset:245;stroke-linecap:round}
+#shutter .core{width:66px;height:66px;border-radius:50%;background:#fff;transition:all .2s}
+#shutter.rec .core{width:34px;height:34px;border-radius:9px;background:#e5484d}
+#shutter:active .core{transform:scale(.92)}
+.gate{position:absolute;inset:0;z-index:5;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:32px;text-align:center;background:radial-gradient(circle at 50% 30%,#3a2412,#000 70%)}
+.logo{font-size:44px;font-weight:800;letter-spacing:4px}
+.logo small{display:block;font-size:14px;letter-spacing:6px;color:var(--accent2);font-weight:600;margin-top:4px}
+.gate p{color:#ccc;line-height:1.6}
+
+/* ---------- Editor ---------- */
+#vEdit .slot{flex:1;min-height:0;padding:4px 0}
+.play{position:absolute;width:64px;height:64px;border-radius:50%;background:rgba(0,0,0,.5);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);display:grid;place-items:center;font-size:22px;z-index:2}
+.play.playing{opacity:0}
+.empty{position:absolute;text-align:center;color:var(--dim);line-height:1.7;z-index:2}
+.pbar{height:3px;margin:8px 24px 0;background:var(--line);border-radius:3px;overflow:hidden;flex:none}
+.pbar i{display:block;height:100%;width:0;background:var(--accent)}
+.opts{padding:10px 14px 0;display:flex;flex-direction:column;gap:8px;flex:none}
+.opts .lab{width:40px}
+.meta{margin-left:auto;font-size:13px;color:var(--dim)}
+.tools{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;padding:10px 14px 0;flex:none}
+.tools button{display:flex;flex-direction:column;align-items:center;gap:4px;padding:9px 0 7px;border-radius:14px;background:var(--panel2)}
+.tools svg{width:20px;height:20px;color:var(--accent)}
+.tools b{font-size:12px}
+.tools small{font-size:10px;color:var(--dim);max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:0 4px}
+.tlWrap{padding:8px 0 calc(var(--sab) + 12px);flex:none}
+.tl{display:flex;gap:8px;overflow-x:auto;padding:4px 14px;scrollbar-width:none}
+.tl::-webkit-scrollbar{display:none}
+.tile{flex:none;width:46px;height:60px;border-radius:12px;overflow:hidden;position:relative;border:2.5px solid transparent;background:#222}
+.tile img{width:100%;height:100%;object-fit:cover;display:block}
+.tile.sel{border-color:var(--accent)}
+.tile.now{border-color:#fff}
+.tile em{position:absolute;right:3px;bottom:2px;font-style:normal;font-size:10px;font-weight:700;text-shadow:0 1px 2px #000}
+.tile.add{display:grid;place-items:center;font-size:24px;color:#bbb;border:1.5px dashed #555;background:transparent}
+.tlActs{display:flex;gap:8px;justify-content:center;padding:8px 14px 0;flex:none}
+.tlActs button{padding:7px 12px;border-radius:99px;background:var(--panel2);font-size:13px}
+.tlActs .danger{color:#ff6b6e}
+
+/* ---------- Tool screens ---------- */
+.tool .slot{height:40dvh;margin-top:4px}
+.cards{display:flex;gap:12px;justify-content:center;padding:16px 14px 0;flex:none}
+.cards button{width:46%;max-width:160px;height:108px;border-radius:16px;border:2px solid transparent;background:var(--panel2);color:#d0d0d6;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;font-size:14px;font-weight:600}
+.cards button.on{border-color:var(--accent);color:#fff}
+.cards i{display:block;border:2.5px solid currentColor;border-radius:5px}
+.cards button.on i{border-color:var(--accent)}
+.fgrid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px 6px;padding:10px 14px 0;overflow-y:auto;min-height:0;flex:1}
+.fgrid button{display:flex;flex-direction:column;align-items:center;gap:4px;align-self:start}
+.fgrid canvas{width:100%;aspect-ratio:56/66;border-radius:10px;border:2.5px solid transparent;display:block;background:#222}
+.fgrid button.on canvas{border-color:var(--accent)}
+.fgrid span{font-size:11px;color:var(--dim);white-space:nowrap}
+.fgrid button.on span{color:#fff;font-weight:700}
+.fgrid em{font-style:normal;font-size:9px;color:var(--accent2);margin-left:2px}
+.lgrid{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:6px;padding:10px 14px 0;flex:none}
+.lgrid button{display:flex;flex-direction:column;align-items:center;gap:5px}
+.lgrid .ic{width:40px;height:62px;padding:3px;gap:2px;border-radius:8px;background:#26262b;border:2px solid transparent;position:relative}
+.lgrid button.on .ic{border-color:var(--accent)}
+.lgrid .ic s{display:block;border-radius:2px;background:#6e6e75;text-decoration:none}
+.lgrid span{font-size:11px;color:var(--dim)}
+.lgrid button.on span{color:#fff;font-weight:700}
+.swatches{display:flex;gap:8px;flex-wrap:wrap}
+.swatches button{width:30px;height:30px;border-radius:50%;border:2px solid #3a3a40}
+.swatches button.on{border-color:var(--accent);box-shadow:0 0 0 2px var(--bg2) inset}
+.tInputRow{display:flex;gap:8px;padding:10px 14px 0;flex:none}
+.tInputRow input{flex:1;min-width:0;height:42px;padding:0 12px;border-radius:12px;border:0;background:var(--panel2);color:var(--text);font-size:16px;-webkit-user-select:text;user-select:text}
+.tPanel{padding:10px 14px 0;flex:none}
+.stickers{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:6px}
+.stickers button{height:40px;border-radius:10px;background:var(--panel2);font-size:22px}
+.fontBtn{height:44px;padding:0 14px;border-radius:12px;border:2px solid transparent;background:var(--panel2);font-size:16px;color:#d0d0d6;flex:none}
+.fontBtn.on{border-color:var(--accent);color:#fff}
+.mList{flex:1;min-height:0;overflow-y:auto;padding:6px 14px 0}
+.track{width:100%;display:flex;align-items:center;gap:12px;padding:8px 6px;border-radius:12px;text-align:left}
+.track.on{background:var(--panel2)}
+.track .cv{width:44px;height:44px;flex:none;border-radius:10px;display:grid;place-items:center}
+.track .cv svg{width:16px;height:16px;fill:#fff}
+.track b{display:block;font-size:15px}
+.track small{font-size:12px;color:var(--dim)}
+.track .ck{margin-left:auto;width:24px;height:24px;border-radius:50%;display:grid;place-items:center;font-size:13px;font-weight:800}
+.track.on .ck{background:var(--accent)}
+.importBtn{margin:10px 14px 0;height:46px;border-radius:14px;border:1.5px dashed #5a5a60;font-size:14px;font-weight:600;flex:none}
+#wave{height:30px;flex:1;min-width:0;display:block}
+.shareGrid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;padding:0 14px}
+.shareGrid button{display:flex;flex-direction:column;align-items:center;gap:6px;font-size:12px}
+.shareGrid i{width:54px;height:54px;border-radius:50%;display:grid;place-items:center;font-style:normal;font-size:16px;font-weight:800;color:#fff}
+.sec{font-size:13px;font-weight:600;color:var(--dim);margin:16px 16px 8px}
+.list{margin:0 14px;border-radius:14px;background:var(--panel);overflow:hidden}
+.list button{width:100%;display:flex;align-items:center;gap:12px;padding:12px 14px;text-align:left;border-top:1px solid #26262b}
+.list button:first-child{border-top:0}
+.list i{width:36px;height:36px;flex:none;border-radius:10px;display:grid;place-items:center;font-style:normal;font-weight:800;font-size:14px;color:#fff}
+.list b{display:block;font-size:15px}
+.list small{font-size:12px;color:var(--dim)}
+.list .chev{margin-left:auto;color:#6e6e75;font-size:18px}
+.expScroll{flex:1;min-height:0;overflow-y:auto;padding-bottom:calc(var(--sab) + 20px)}
+.bar{height:6px;background:var(--line);border-radius:6px;overflow:hidden;margin:10px 24px}
+.bar i{display:block;height:100%;width:0;background:var(--accent);transition:width .2s}
+#expVideo{display:block;max-width:calc(100% - 28px);max-height:46dvh;margin:4px auto 0;border-radius:14px;background:#000}
+
+/* ---------- Sheet ---------- */
+.sheet{position:fixed;inset:0;z-index:20;background:rgba(0,0,0,.55);display:flex;align-items:flex-end;opacity:0;pointer-events:none;transition:opacity .25s}
+.sheet.on{opacity:1;pointer-events:auto}
+.sheetBody{width:100%;max-height:84dvh;background:var(--panel);border-radius:22px 22px 0 0;display:flex;flex-direction:column;transform:translateY(30px);transition:transform .25s}
+.sheet.on .sheetBody{transform:none}
+.sheetBody header{padding:16px 16px 8px}
+.sheetBar{display:flex;gap:8px;padding:0 16px 10px}
+#lib{overflow-y:auto;padding:0 16px calc(var(--sab) + 20px)}
+.grpH{font-size:13px;color:var(--dim);margin:14px 0 8px;font-weight:600}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.cell{position:relative;aspect-ratio:9/16;border-radius:10px;overflow:hidden;background:#222}
+.cell img{width:100%;height:100%;object-fit:cover;display:block}
+.cell .ck{position:absolute;top:6px;right:6px;width:22px;height:22px;border-radius:50%;border:2px solid #fff;background:rgba(0,0,0,.25);display:grid;place-items:center;font-size:12px;font-weight:800}
+.cell.on .ck{background:var(--accent);border-color:var(--accent)}
+.cell .x{position:absolute;top:4px;left:4px;width:26px;height:26px;border-radius:50%;background:rgba(0,0,0,.55);font-size:13px;display:grid;place-items:center}
+.cell .lb{position:absolute;left:6px;bottom:5px;right:6px;font-size:11px;font-weight:600;text-shadow:0 1px 3px #000;line-height:1.3}
+
+/* ---------- Diary / player ---------- */
+#vDiary .scroll{flex:1;overflow-y:auto;padding:0 14px calc(var(--sab) + 24px)}
+#vDiary h3{font-size:15px;margin:16px 2px 10px}
+#vDiary h3 small{color:var(--dim);font-weight:500}
+.emptyTxt{color:var(--dim);font-size:13px;padding:10px 2px}
+.overlay{position:fixed;inset:0;z-index:30;background:rgba(0,0,0,.85);display:flex;align-items:center;justify-content:center;padding:20px}
+.card{width:100%;max-width:420px;background:var(--panel);border-radius:22px;padding:20px;text-align:center}
+.card video{width:100%;max-height:60dvh;border-radius:14px;background:#000;margin-bottom:14px}
+.btns{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+</style>
+</head>
+<body>
+
+<!-- ===== 1 相機 ===== -->
+<section id="vCam" class="view on">
+  <video id="cam" playsinline muted autoplay></video>
+  <div id="flash"></div>
+  <div class="camTop">
+    <div class="badge" id="todayBadge">今天 0 段</div>
+    <button class="iconBtn" id="toDiary" aria-label="我的影像日記">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="2"/><rect x="14" y="3" width="7" height="7" rx="2"/><rect x="3" y="14" width="7" height="7" rx="2"/><rect x="14" y="14" width="7" height="7" rx="2"/></svg>
+    </button>
+  </div>
+  <div id="recTimer" class="recTimer" hidden>● 錄影中</div>
+  <div class="camBottom">
+    <div class="durs" id="durs">
+      <button data-d="1" class="on">1s</button><button data-d="2">2s</button><button data-d="3">3s</button><button data-d="5">5s</button><button data-d="10">10s</button>
+    </div>
+    <div class="hint" id="hint">輕點一下，自動拍 1 秒</div>
+    <div class="ctrls">
+      <button id="toEditor" class="galBtn" aria-label="合成影片"><img id="galImg" alt=""><span id="galCount"></span></button>
+      <button id="shutter" aria-label="拍攝">
+        <svg viewBox="0 0 86 86"><circle class="ringBg" cx="43" cy="43" r="39"/><circle id="ring" cx="43" cy="43" r="39"/></svg>
+        <span class="core"></span>
+      </button>
+      <button id="flip" class="iconBtn big" aria-label="切換鏡頭" style="background:rgba(255,255,255,.18)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 7h-3l-2-3H9L7 7H4a1 1 0 0 0-1 1v11a1 1 0 0 0 1 1h16a1 1 0 0 0 1-1V8a1 1 0 0 0-1-1z"/><path d="M9 13.5a3 3 0 0 1 5.2-2"/><path d="M15 12.5a3 3 0 0 1-5.2 2"/></svg>
+      </button>
+    </div>
+  </div>
+  <div id="camGate" class="gate">
+    <div class="logo">瞬記<small>MOMENT VLOG</small></div>
+    <p>每次拍 1 秒，輕鬆做成迷你 vlog<br>拍下的瞬間，自動合成一支影片</p>
+    <button class="primary" id="openCam">開啟相機</button>
+    <button class="pill" id="gateEdit">先看看我的片段</button>
+    <p class="small" id="gateErr"></p>
+  </div>
+</section>
+
+<!-- ===== 3 合成影片 ===== -->
+<section id="vEdit" class="view">
+  <header>
+    <button id="edClose" class="iconBtn" aria-label="返回相機"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+    <b>合成影片</b>
+    <button id="exportBtn" class="pill orange">輸出</button>
+  </header>
+  <div class="slot">
+    <div class="empty" id="edEmpty" hidden>還沒有片段<br>點下方 ＋ 加入，或先去拍幾秒吧</div>
+    <button id="playBtn" class="play" aria-label="播放">▶</button>
+  </div>
+  <div class="pbar"><i id="pvBar"></i></div>
+  <div class="opts">
+    <div class="row"><span class="lab">時間</span><div class="chips" id="fmtSeg"></div></div>
+    <div class="row" id="posRow"><span class="lab">位置</span><div class="chips" id="posSeg"></div></div>
+    <div class="row"><span class="lab">原聲</span><label class="sw"><input type="checkbox" id="origSw" checked><i></i></label><span class="meta" id="totalDur"></span></div>
+  </div>
+  <div class="tools" id="tools">
+    <button data-tool="vCrop"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2v14a2 2 0 0 0 2 2h14"/><path d="M18 22V8a2 2 0 0 0-2-2H2"/></svg><b>比例</b><small id="tvCrop"></small></button>
+    <button data-tool="vFilter"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="9" cy="9" r="6"/><circle cx="15" cy="15" r="6"/></svg><b>濾鏡</b><small id="tvFilter"></small></button>
+    <button data-tool="vLayout"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M12 3v18M3 12h9"/></svg><b>版面</b><small id="tvLayout"></small></button>
+    <button data-tool="vText"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M5 6V4h14v2M12 4v16M9 20h6"/></svg><b>文字</b><small id="tvText"></small></button>
+  </div>
+  <div class="tlActs" id="tlActs" hidden>
+    <button data-a="left">◀ 前移</button><button data-a="right">後移 ▶</button><button data-a="remove" class="danger">從影片移除</button>
+  </div>
+  <div class="tlWrap"><div id="tl" class="tl"></div></div>
+</section>
+
+<!-- ===== 6 畫面比例 ===== -->
+<section id="vCrop" class="view tool">
+  <header><button class="iconBtn" data-back aria-label="返回"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button><b>畫面比例</b><button class="pill orange" data-back>完成</button></header>
+  <div class="slot"></div>
+  <p class="hint2" id="cropHint">拖曳畫面，調整要保留的位置</p>
+  <div class="cards" id="aspectCards">
+    <button data-a="9:16"><i style="width:26px;height:46px"></i>9:16 直式</button>
+    <button data-a="1:1"><i style="width:40px;height:40px"></i>1:1 正方形</button>
+  </div>
+  <div class="spacer"></div>
+  <div class="card2">
+    <div class="row"><span class="grow" style="font-size:14px">不裁切，空白處補上模糊背景</span><label class="sw"><input type="checkbox" id="blurSw"><i></i></label></div>
+    <div class="row"><span class="grow" style="font-size:14px">位置回到正中間</span><button class="pill" id="cropReset">置中</button></div>
+  </div>
+</section>
+
+<!-- ===== 7 濾鏡 ===== -->
+<section id="vFilter" class="view tool">
+  <header><button class="iconBtn" data-back aria-label="返回"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button><b>濾鏡</b><button class="pill orange" data-back>完成</button></header>
+  <div class="slot" style="height:34dvh"></div>
+  <div class="chips" id="fCats" style="padding:10px 14px 0"></div>
+  <div class="fgrid" id="fGrid"></div>
+  <div class="card2" style="margin-top:10px">
+    <div class="row"><span class="lab" style="width:40px">強度</span><input type="range" class="rng" id="fInt" min="0" max="100"><span class="val" id="fIntV"></span></div>
+    <p class="small">「藝術風格」是手機上即時模擬的效果，片段多時合成會比較久。</p>
+  </div>
+</section>
+
+<!-- ===== 8 版面編輯 ===== -->
+<section id="vLayout" class="view tool">
+  <header><button class="iconBtn" data-back aria-label="返回"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button><b>版面編輯</b><button class="pill orange" data-back>完成</button></header>
+  <div class="slot"></div>
+  <p class="hint2" id="layoutHint"></p>
+  <div class="lgrid" id="lGrid"></div>
+  <div class="spacer"></div>
+  <div class="card2">
+    <div class="row"><span class="lab">邊框</span><input type="range" class="rng" id="bRange" min="0" max="40"><span class="val" id="bVal"></span></div>
+    <div class="row"><span class="lab">邊框色</span><div class="swatches" id="bColors"></div></div>
+    <div class="row"><span class="grow" style="font-size:14px">自動變焦 <small class="small">（慢慢推近畫面）</small></span><label class="sw"><input type="checkbox" id="zoomSw"><i></i></label></div>
+  </div>
+</section>
+
+<!-- ===== 9 文字編輯 ===== -->
+<section id="vText" class="view tool">
+  <header><button class="iconBtn" data-back aria-label="返回"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button><b>文字編輯</b><button class="pill orange" data-back>完成</button></header>
+  <div class="slot" style="height:34dvh"></div>
+  <p class="hint2" id="textHint">拖曳畫面上的文字可以移動</p>
+  <div class="tInputRow">
+    <input id="tInput" type="text" placeholder="點「＋ 新增文字」開始" aria-label="文字內容">
+    <button class="pill" id="tAdd">＋ 新增文字</button>
+  </div>
+  <div class="tabs" id="tTabs">
+    <button data-t="font" class="on">字體</button><button data-t="color">顏色</button><button data-t="style">樣式</button><button data-t="sticker">貼圖</button>
+  </div>
+  <div class="tPanel" id="tpFont"><div class="chips" id="fontChips"></div></div>
+  <div class="tPanel" id="tpColor" hidden><div class="swatches" id="tColors"></div></div>
+  <div class="tPanel" id="tpStyle" hidden><div class="chips" id="styleChips"></div></div>
+  <div class="tPanel" id="tpSticker" hidden><div class="stickers" id="stickerGrid"></div></div>
+  <div class="spacer"></div>
+  <div class="card2">
+    <div class="row"><span class="lab" style="width:48px">大小</span><input type="range" class="rng" id="tSize" min="20" max="180"><button class="pill danger" id="tDel">刪除</button></div>
+    <div class="row"><span class="lab" style="width:48px">出現在</span><div class="chips" id="scopeChips"><button data-s="clip">只有這段</button><button data-s="all">整支影片</button></div></div>
+  </div>
+</section>
+
+<!-- ===== 5 背景音樂 ===== -->
+<section id="vMusic" class="view tool">
+  <header><button class="iconBtn" data-back aria-label="返回編輯"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button><b>加入音樂</b><button class="pill orange" id="mNext">下一步 ›</button></header>
+  <div class="slot" style="height:24dvh"><button class="play" id="mPlay" aria-label="連同影片試聽">▶</button></div>
+  <p class="hint2">點畫面可以連同影片一起試聽</p>
+  <div class="tabs" id="mTabs" style="margin-top:8px"><button data-m="lib">音樂庫</button><button data-m="file">我匯入的</button><button data-m="none">不使用</button></div>
+  <button class="importBtn" id="mImport">＋ 從「檔案」匯入音樂（mp3 / m4a）</button>
+  <div class="chips" id="mCats" style="padding:12px 14px 0"></div>
+  <div class="mList" id="mList"></div>
+  <div class="card2" style="margin-top:10px">
+    <div class="row"><span class="lab">起始點</span><canvas id="wave" width="300" height="30"></canvas><span class="val" id="mStartV">0:00</span></div>
+    <input type="range" class="rng" id="mStart" min="0" max="60" step="0.5" style="width:100%">
+    <div class="row"><span class="lab">音樂音量</span><input type="range" class="rng" id="mVol" min="0" max="100"><span class="val" id="mVolV"></span></div>
+    <div class="row"><span class="lab">原聲音量</span><input type="range" class="rng" id="oVol" min="0" max="100"><span class="val" id="oVolV"></span></div>
+    <div class="row"><span class="grow" style="font-size:14px">結尾淡出</span><label class="sw"><input type="checkbox" id="fadeSw"><i></i></label></div>
+  </div>
+</section>
+<input type="file" id="mFileIn" accept="audio/*" hidden>
+
+<!-- ===== 10 輸出・分享・儲存 ===== -->
+<section id="vExport" class="view tool">
+  <header><button class="iconBtn" id="expBack" aria-label="返回編輯"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button><b id="expTitle">輸出影片</b><button class="pill" id="expDoneBtn" hidden>完成</button><span id="expSpacer" style="width:44px"></span></header>
+  <div class="expScroll">
+    <div id="expPrep">
+      <div class="slot" style="height:52dvh"><button class="play" id="xPlay" aria-label="播放預覽">▶</button></div>
+      <div class="pbar"><i id="xBar"></i></div>
+      <div class="row" style="justify-content:space-between;margin:6px 24px 0"><span class="small" id="xTime">0:00</span><span class="small">點畫面播放／暫停</span></div>
+      <p class="hint2" id="expInfo"></p>
+      <div class="row" style="justify-content:center;margin-top:14px"><span class="small">畫質</span><div class="chips" id="resChips"><button data-r="720">720p</button><button data-r="1080">1080p</button></div></div>
+      <div style="display:flex;justify-content:center;margin-top:18px"><button class="primary" id="expStart">開始輸出</button></div>
+    </div>
+    <div id="expRun" hidden style="text-align:center">
+      <div class="slot" id="expRunSlot" style="height:34dvh"></div>
+      <div style="font-size:46px;font-weight:800;color:var(--accent);margin-top:10px" id="expPct">0%</div>
+      <p class="small">正在合成影片…請保持畫面開啟，不要切換 App</p>
+      <div class="bar"><i id="expBar"></i></div>
+      <button class="pill" id="expCancel">取消</button>
+    </div>
+    <div id="expOut" hidden>
+      <video id="expVideo" playsinline controls></video>
+      <p class="hint2" id="expMeta"></p>
+      <h2 class="sec">分享到</h2>
+      <div class="shareGrid">
+        <button data-share="LINE"><i style="background:#2a9d5c">L</i>LINE</button>
+        <button data-share="Instagram"><i style="background:#b4527a">IG</i>Instagram</button>
+        <button data-share="Facebook"><i style="background:#3f63b8">f</i>Facebook</button>
+        <button data-share=""><i style="background:#3a3a40">···</i>更多</button>
+      </div>
+      <h2 class="sec">儲存在這支手機</h2>
+      <div class="list">
+        <button data-save="photos"><i style="background:var(--accent)">▣</i><span><b>存到「照片」</b><small>在選單中選「儲存影片」</small></span><span class="chev">›</span></button>
+        <button data-save="files"><i style="background:#4a7fc1">▤</i><span><b>存到「檔案」</b><small>下載 mp4 檔案到 iPhone</small></span><span class="chev">›</span></button>
+      </div>
+      <h2 class="sec">備份到雲端</h2>
+      <div class="list">
+        <button data-cloud="iCloud 雲端硬碟"><i style="background:#5b9bc4">☁</i><span><b>iCloud 雲端硬碟</b><small>選「儲存到檔案」→ iCloud 雲端硬碟</small></span><span class="chev">›</span></button>
+        <button data-cloud="Google 雲端硬碟"><i style="background:#3a8f5c">G</i><span><b>Google 雲端硬碟</b><small>需要安裝 Google 雲端硬碟 App</small></span><span class="chev">›</span></button>
+        <button data-cloud="Dropbox"><i style="background:#3f63b8">D</i><span><b>Dropbox</b><small>需要安裝 Dropbox App</small></span><span class="chev">›</span></button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== 11 影像日記 ===== -->
+<section id="vDiary" class="view">
+  <header>
+    <button id="dyClose" class="iconBtn" aria-label="返回相機"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button>
+    <b>我的影像日記</b><span style="width:44px"></span>
+  </header>
+  <div class="scroll">
+    <h3>完成的影片 <small id="filmCount"></small></h3>
+    <div id="films" class="grid"></div>
+    <h3>所有片段 <small id="clipCount"></small></h3>
+    <div id="allClips"></div>
+  </div>
+</section>
+
+<!-- ===== 4 選擇片段 ===== -->
+<div id="sheet" class="sheet">
+  <div class="sheetBody">
+    <header><b>選擇片段</b><button id="sheetDone" class="pill orange">完成</button></header>
+    <div class="sheetBar"><button id="importBtn" class="pill">＋ 從相簿匯入</button><button id="addToday" class="pill">只用今天的</button></div>
+    <div id="lib"></div>
+  </div>
+</div>
+<input type="file" id="fileIn" accept="video/*,image/*" multiple hidden>
+
+<!-- ===== 播放器 ===== -->
+<div id="player" class="overlay" hidden>
+  <div class="card">
+    <video id="plVideo" playsinline controls></video>
+    <div class="btns">
+      <button id="plShare" class="primary">儲存 / 分享</button>
+      <button id="plDel" class="pill danger">刪除</button>
+      <button id="plClose" class="pill">關閉</button>
+    </div>
+  </div>
+</div>
+
+<canvas id="pvCanvas" width="720" height="1280"></canvas>
+<div id="toast"></div>
+
+<script>
+(() => {
+'use strict';
+const $ = s => document.querySelector(s);
+const $$ = s => [...document.querySelectorAll(s)];
+const pad = n => String(n).padStart(2, '0');
+const WK = '日一二三四五六';
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+const wait = ms => new Promise(r => setTimeout(r, ms));
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const dayKey = ts => { const d = new Date(ts); return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); };
+const zhDay = ts => { const d = new Date(ts); return `${d.getMonth() + 1}月${d.getDate()}日 星期${WK[d.getDay()]}`; };
+const hm = ts => { const d = new Date(ts); return pad(d.getHours()) + ':' + pad(d.getMinutes()); };
+const mmss = s => Math.floor(s / 60) + ':' + pad(Math.floor(s % 60));
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+/* ================= 儲存 ================= */
+const DB = {
+  db: null,
+  open() {
+    return new Promise((res, rej) => {
+      const r = indexedDB.open('shunji-vlog', 2);
+      r.onupgradeneeded = () => {
+        const d = r.result;
+        ['clips', 'films', 'music'].forEach(n => { if (!d.objectStoreNames.contains(n)) d.createObjectStore(n, { keyPath: 'id' }); });
+      };
+      r.onsuccess = () => { this.db = r.result; res(); };
+      r.onerror = () => rej(r.error);
+    });
+  },
+  req(store, mode, fn) {
+    return new Promise((res, rej) => {
+      const q = fn(this.db.transaction(store, mode).objectStore(store));
+      q.onsuccess = () => res(q.result); q.onerror = () => rej(q.error);
+    });
+  },
+  put(s, v) { return this.req(s, 'readwrite', o => o.put(v)); },
+  all(s) { return this.req(s, 'readonly', o => o.getAll()); },
+  del(s, id) { return this.req(s, 'readwrite', o => o.delete(id)); }
+};
+const LS = {
+  get(k, d) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch (e) { return d; } },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
+};
+
+/* ================= 狀態 ================= */
+const CFG0 = {
+  fmt: 'zh', pos: 'bl', orig: true,
+  aspect: '9:16', blurBg: false, cropX: 0, cropY: 0,
+  filter: 'none', fInt: 80,
+  layout: 'one', border: 16, bColor: '#ffffff', autoZoom: false,
+  texts: [],
+  music: { kind: 'none', id: null, name: '', start: 0 }, mVol: 70, oVol: 60, fade: true,
+  res: 720
+};
+const S = {
+  stream: null, facing: 'environment', dur: LS.get('dur', 1), recording: false, camWanted: false,
+  clips: [], films: [], musicFiles: [], timeline: LS.get('timeline', []), sel: -1,
+  cfg: Object.assign({}, CFG0, LS.get('cfg', {})),
+  view: 'vCam', playing: false, sig: null, playPromise: null, stillToken: 0,
+  player: null, lastFilm: null, textSel: null, textBoxes: [], fCat: 'all', mCat: '全部', mTab: 'lib', tTab: 'font'
+};
+const saveCfg = () => LS.set('cfg', S.cfg);
+const imgCache = new Map(), frameCache = new Map(), bufCache = new Map();
+
+function toast(msg, ms) {
+  const t = $('#toast'); t.textContent = msg; t.classList.add('on');
+  clearTimeout(toast.t); toast.t = setTimeout(() => t.classList.remove('on'), ms || 2000);
+}
+
+/* ================= 畫面切換 ================= */
+const pvCanvas = $('#pvCanvas'), pvCtx = pvCanvas.getContext('2d');
+function fitCanvas() {
+  const slot = pvCanvas.parentElement;
+  if (!slot || !slot.classList.contains('slot')) return;
+  const r = slot.getBoundingClientRect();
+  if (!r.height) return;
+  const ar = pvCanvas.width / pvCanvas.height;
+  let h = r.height - 8, w = h * ar;
+  if (w > r.width - 32) { w = r.width - 32; h = w / ar; }
+  pvCanvas.style.width = Math.max(0, w) + 'px'; pvCanvas.style.height = Math.max(0, h) + 'px';
+}
+function showView(id) {
+  S.view = id;
+  $$('.view').forEach(v => v.classList.toggle('on', v.id === id));
+  if (id === 'vCam') { if (S.camWanted) startCam(); } else stopCam();
+  const slot = document.querySelector('#' + id + ' .slot');
+  if (slot) { slot.insertBefore(pvCanvas, slot.firstChild); requestAnimationFrame(fitCanvas); }
+}
+window.addEventListener('resize', () => fitCanvas());
+
+/* ================= 相機 ================= */
+async function startCam() {
+  const err = $('#gateErr');
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    err.textContent = '這個網址無法使用相機。請用 https 開啟（例如 GitHub Pages），並使用 Safari。';
+    $('#camGate').hidden = false; return;
+  }
+  stopCam();
+  const video = { facingMode: S.facing, width: { ideal: 1280 }, height: { ideal: 720 } };
+  try { S.stream = await navigator.mediaDevices.getUserMedia({ video, audio: true }); }
+  catch (e) {
+    try { S.stream = await navigator.mediaDevices.getUserMedia({ video, audio: false }); }
+    catch (e2) { err.textContent = '無法開啟相機：請到「設定 → Safari → 相機」允許存取後再試一次。'; $('#camGate').hidden = false; return; }
+  }
+  if (S.view !== 'vCam') { stopCam(); return; }
+  S.camWanted = true;
+  const v = $('#cam');
+  v.srcObject = S.stream;
+  v.classList.toggle('mirror', S.facing === 'user');
+  try { await v.play(); } catch (e) {}
+  $('#camGate').hidden = true;
+}
+function stopCam() { if (S.stream) { S.stream.getTracks().forEach(t => t.stop()); S.stream = null; } }
+function pickMime() {
+  if (!window.MediaRecorder) return null;
+  const c = ['video/mp4;codecs=avc1', 'video/mp4', 'video/webm;codecs=vp9,opus', 'video/webm'];
+  return c.find(m => MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(m)) || '';
+}
+function thumbFrom(src, sw, sh) {
+  const c = document.createElement('canvas'); c.width = 270; c.height = 480;
+  const x = c.getContext('2d');
+  const s = Math.max(c.width / sw, c.height / sh);
+  x.drawImage(src, (c.width - sw * s) / 2, (c.height - sh * s) / 2, sw * s, sh * s);
+  return c.toDataURL('image/jpeg', 0.72);
+}
+async function shoot() {
+  if (S.recording) return;
+  if (!S.stream) { startCam(); return; }
+  const mime = pickMime();
+  if (mime === null) { toast('這台裝置不支援錄影，請更新 iOS'); return; }
+  S.recording = true;
+  const cam = $('#cam');
+  const thumb = cam.videoWidth ? thumbFrom(cam, cam.videoWidth, cam.videoHeight) : '';
+  const chunks = [];
+  let rec;
+  try { rec = new MediaRecorder(S.stream, mime ? { mimeType: mime, videoBitsPerSecond: 6e6 } : {}); }
+  catch (e) { rec = new MediaRecorder(S.stream); }
+  rec.ondataavailable = e => { if (e.data && e.data.size) chunks.push(e.data); };
+  const stopped = new Promise(r => { rec.onstop = r; });
+  const created = Date.now();
+  rec.start(100);
+  const sh = $('#shutter'), ring = $('#ring');
+  sh.classList.add('rec'); $('#recTimer').hidden = false;
+  ring.style.transition = 'none'; ring.style.strokeDashoffset = 245; ring.getBoundingClientRect();
+  ring.style.transition = `stroke-dashoffset ${S.dur}s linear`; ring.style.strokeDashoffset = 0;
+  await wait(S.dur * 1000 + 150);
+  rec.stop(); await stopped;
+  sh.classList.remove('rec'); $('#recTimer').hidden = true;
+  ring.style.transition = 'none'; ring.style.strokeDashoffset = 245;
+  const fl = $('#flash'); fl.classList.add('on'); requestAnimationFrame(() => requestAnimationFrame(() => fl.classList.remove('on')));
+  const blob = new Blob(chunks, { type: rec.mimeType || mime || 'video/mp4' });
+  if (blob.size < 1000) { toast('錄影失敗，請再試一次'); S.recording = false; return; }
+  const clip = { id: uid(), type: 'video', blob, created, dur: S.dur, thumb };
+  try { await DB.put('clips', clip); } catch (e) { toast('儲存空間不足'); }
+  S.clips.push(clip);
+  if (dayKey(created) === dayKey(Date.now()) && !S.timeline.includes(clip.id)) { S.timeline.push(clip.id); saveTL(); }
+  refreshCamUI();
+  toast(`已拍下 ${S.dur} 秒 ✓`);
+  S.recording = false;
+}
+function refreshCamUI() {
+  const today = S.clips.filter(c => dayKey(c.created) === dayKey(Date.now()));
+  $('#todayBadge').textContent = `今天 ${today.length} 段`;
+  const last = S.clips[S.clips.length - 1];
+  const g = $('#galImg');
+  if (last && last.thumb) { g.src = last.thumb; g.hidden = false; } else g.hidden = true;
+  $('#galCount').textContent = S.clips.length ? S.clips.length : '';
+}
+
+/* ================= 載入工具 ================= */
+function once(el, ev, ms = 6000) {
+  return new Promise(res => {
+    let t;
+    const f = () => { clearTimeout(t); el.removeEventListener(ev, f); res(true); };
+    el.addEventListener(ev, f);
+    t = setTimeout(() => { el.removeEventListener(ev, f); res(false); }, ms);
+  });
+}
+function loadImg(src) {
+  return new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = src; });
+}
+async function getImg(clip) {
+  if (imgCache.has(clip.id)) return imgCache.get(clip.id);
+  const img = await loadImg(URL.createObjectURL(clip.blob));
+  imgCache.set(clip.id, img); return img;
+}
+async function stillSource(c) {
+  if (!c) return null;
+  try {
+    if (c.type === 'image') { const i = await getImg(c); return { el: i, w: i.naturalWidth, h: i.naturalHeight }; }
+    if (frameCache.has(c.id)) return frameCache.get(c.id);
+    const v = document.createElement('video');
+    v.muted = true; v.playsInline = true; v.setAttribute('playsinline', ''); v.preload = 'auto';
+    const url = URL.createObjectURL(c.blob);
+    v.src = url; v.load();
+    const p = v.play(); if (p) p.catch(() => {});
+    const ok = await once(v, 'loadeddata', 5000);
+    v.pause();
+    if (ok) { try { v.currentTime = Math.min(0.15, (v.duration || 1) / 2); } catch (e) {} await once(v, 'seeked', 2500); }
+    let res = null;
+    if (v.videoWidth) {
+      const cv = document.createElement('canvas');
+      const sc = Math.min(1, 1080 / Math.max(v.videoWidth, v.videoHeight));
+      cv.width = Math.round(v.videoWidth * sc); cv.height = Math.round(v.videoHeight * sc);
+      cv.getContext('2d').drawImage(v, 0, 0, cv.width, cv.height);
+      res = { el: cv, w: cv.width, h: cv.height };
+    } else if (c.thumb) {
+      const i = await loadImg(c.thumb); res = { el: i, w: i.naturalWidth, h: i.naturalHeight };
+    }
+    URL.revokeObjectURL(url); v.removeAttribute('src'); v.load();
+    if (res) frameCache.set(c.id, res);
+    return res;
+  } catch (e) { return null; }
+}
+async function importFiles(files) {
+  if (!files.length) return;
+  toast('匯入中…');
+  let n = 0;
+  for (const f of files) {
+    try {
+      const isImg = f.type.startsWith('image/');
+      let thumb = '', dur = 2;
+      if (isImg) {
+        const url = URL.createObjectURL(f);
+        const img = await loadImg(url);
+        thumb = thumbFrom(img, img.naturalWidth, img.naturalHeight);
+        URL.revokeObjectURL(url);
+      } else {
+        const v = document.createElement('video');
+        v.muted = true; v.playsInline = true; v.preload = 'auto';
+        const url = URL.createObjectURL(f);
+        v.src = url; v.load();
+        const p = v.play(); if (p) p.catch(() => {});
+        await once(v, 'loadeddata'); v.pause();
+        try { v.currentTime = Math.min(0.2, (v.duration || 1) / 2); } catch (e) {}
+        await once(v, 'seeked', 3000);
+        if (v.videoWidth) thumb = thumbFrom(v, v.videoWidth, v.videoHeight);
+        dur = Math.max(1, Math.min(3, isFinite(v.duration) ? v.duration : 3));
+        URL.revokeObjectURL(url);
+      }
+      const clip = { id: uid(), type: isImg ? 'image' : 'video', blob: f, created: f.lastModified || Date.now(), dur, thumb };
+      await DB.put('clips', clip);
+      S.clips.push(clip); S.timeline.push(clip.id); n++;
+    } catch (e) { console.warn(e); }
+  }
+  S.clips.sort((a, b) => a.created - b.created);
+  saveTL(); renderLib(); renderTL(); refreshCamUI(); drawStill();
+  toast(n ? `已匯入 ${n} 個（影片取前 3 秒）` : '匯入失敗');
+}
+
+/* ================= 版面 ================= */
+const LAYOUTS = {
+  one: { n: 1, name: '單格' }, tb: { n: 2, name: '上下' }, lr: { n: 2, name: '左右' },
+  three: { n: 3, name: '三格' }, four: { n: 4, name: '四格' }, pip: { n: 2, name: '雙攝' }
+};
+function curItems() { return S.timeline.map(id => S.clips.find(c => c.id === id)).filter(Boolean); }
+function pages() {
+  const items = curItems(), n = LAYOUTS[S.cfg.layout].n, out = [];
+  for (let i = 0; i < items.length; i += n) {
+    const pg = items.slice(i, i + n), cells = [];
+    for (let j = 0; j < n; j++) cells.push(pg[j % pg.length]);
+    out.push(cells);
+  }
+  return out;
+}
+const pageDur = cells => Math.max(...cells.map(c => c.dur || 1));
+function cellRects(W, H) {
+  const L = S.cfg.layout;
+  const b = LAYOUTS[L].n > 1 ? Math.round(S.cfg.border * W / 720) : 0;
+  const R = (x, y, w, h, round) => ({ x, y, w, h, round: round || 0 });
+  if (L === 'tb') { const h = (H - 3 * b) / 2; return [R(b, b, W - 2 * b, h), R(b, 2 * b + h, W - 2 * b, h)]; }
+  if (L === 'lr') { const w = (W - 3 * b) / 2; return [R(b, b, w, H - 2 * b), R(2 * b + w, b, w, H - 2 * b)]; }
+  if (L === 'three') { const h = (H - 4 * b) / 3; return [0, 1, 2].map(i => R(b, b + i * (h + b), W - 2 * b, h)); }
+  if (L === 'four') { const w = (W - 3 * b) / 2, h = (H - 3 * b) / 2; return [R(b, b, w, h), R(2 * b + w, b, w, h), R(b, 2 * b + h, w, h), R(2 * b + w, 2 * b + h, w, h)]; }
+  if (L === 'pip') {
+    const pw = Math.round(W * 0.34), ph = Math.round(pw * 4 / 3), m = Math.round(W * 0.06);
+    return [R(0, 0, W, H), R(m, H - m - ph - Math.round(H * 0.07), pw, ph, Math.round(W * 0.03))];
+  }
+  return [R(0, 0, W, H)];
+}
+function roundPath(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  if (!r) { ctx.rect(x, y, w, h); return; }
+  ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath();
+}
+const _bc = document.createElement('canvas');
+function blurCanvas(src, sw, sh) {
+  const w = 24, h = Math.max(8, Math.round(24 * sh / sw));
+  _bc.width = w; _bc.height = h; _bc.getContext('2d').drawImage(src, 0, 0, w, h);
+  return _bc;
+}
+function drawCell(ctx, s, r, zoom) {
+  ctx.save();
+  roundPath(ctx, r.x, r.y, r.w, r.h, r.round); ctx.clip();
+  if (!s || !s.w || !s.h) { ctx.fillStyle = '#1a1a1a'; ctx.fillRect(r.x, r.y, r.w, r.h); ctx.restore(); return; }
+  const { el, w: sw, h: sh } = s;
+  if (S.cfg.blurBg) {
+    const c = Math.max(r.w / sw, r.h / sh);
+    ctx.drawImage(blurCanvas(el, sw, sh), r.x + (r.w - sw * c) / 2, r.y + (r.h - sh * c) / 2, sw * c, sh * c);
+    ctx.fillStyle = 'rgba(0,0,0,.12)'; ctx.fillRect(r.x, r.y, r.w, r.h);
+    const k = Math.min(r.w / sw, r.h / sh) * zoom, dw = sw * k, dh = sh * k;
+    ctx.drawImage(el, r.x + (r.w - dw) / 2, r.y + (r.h - dh) / 2, dw, dh);
+  } else {
+    const k = Math.max(r.w / sw, r.h / sh) * zoom, dw = sw * k, dh = sh * k;
+    const x = r.x - (dw - r.w) * (S.cfg.cropX + 1) / 2, y = r.y - (dh - r.h) * (S.cfg.cropY + 1) / 2;
+    ctx.drawImage(el, x, y, dw, dh);
+  }
+  ctx.restore();
+}
+
+/* ================= 濾鏡 ================= */
+const MX = {
+  I: [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0],
+  mul(a, b) {
+    const r = new Array(12);
+    for (let i = 0; i < 3; i++) {
+      for (let j = 0; j < 3; j++) r[i * 4 + j] = a[i * 4] * b[j] + a[i * 4 + 1] * b[4 + j] + a[i * 4 + 2] * b[8 + j];
+      r[i * 4 + 3] = a[i * 4] * b[3] + a[i * 4 + 1] * b[7] + a[i * 4 + 2] * b[11] + a[i * 4 + 3];
+    }
+    return r;
+  },
+  chain(...ms) { return ms.reduce((acc, m) => MX.mul(m, acc), MX.I); },
+  sat(s) { const r = .2126 * (1 - s), g = .7152 * (1 - s), b = .0722 * (1 - s); return [r + s, g, b, 0, r, g + s, b, 0, r, g, b + s, 0]; },
+  bri(b) { return [b, 0, 0, 0, 0, b, 0, 0, 0, 0, b, 0]; },
+  con(c) { const o = 128 * (1 - c); return [c, 0, 0, o, 0, c, 0, o, 0, 0, c, o]; },
+  sep(p) { const q = 1 - p; return [.393 * p + q, .769 * p, .189 * p, 0, .349 * p, .686 * p + q, .168 * p, 0, .272 * p, .534 * p, .131 * p + q, 0]; },
+  hue(deg) {
+    const a = deg * Math.PI / 180, c = Math.cos(a), s = Math.sin(a);
+    return [.213 + c * .787 - s * .213, .715 - c * .715 - s * .715, .072 - c * .072 + s * .928, 0,
+      .213 - c * .213 + s * .143, .715 + c * .285 + s * .140, .072 - c * .072 - s * .283, 0,
+      .213 - c * .213 - s * .787, .715 - c * .715 + s * .715, .072 + c * .928 + s * .072, 0];
+  },
+  off(r, g, b) { return [1, 0, 0, r, 0, 1, 0, g, 0, 0, 1, b]; }
+};
+function applyMatrix(d, m, k) {
+  const a = m[0], b = m[1], c = m[2], o1 = m[3], e = m[4], f = m[5], g = m[6], o2 = m[7], h = m[8], i = m[9], j = m[10], o3 = m[11], q = 1 - k;
+  for (let p = 0; p < d.length; p += 4) {
+    const R = d[p], G = d[p + 1], B = d[p + 2];
+    d[p] = q * R + k * (a * R + b * G + c * B + o1);
+    d[p + 1] = q * G + k * (e * R + f * G + g * B + o2);
+    d[p + 2] = q * B + k * (h * R + i * G + j * B + o3);
+  }
+}
+function grayOf(d, w, h) { const g = new Float32Array(w * h); for (let i = 0, p = 0; i < g.length; i++, p += 4) g[i] = .299 * d[p] + .587 * d[p + 1] + .114 * d[p + 2]; return g; }
+function sobel(g, w, h) {
+  const m = new Float32Array(w * h);
+  for (let y = 1; y < h - 1; y++) for (let x = 1; x < w - 1; x++) {
+    const i = y * w + x;
+    const gx = -g[i - w - 1] - 2 * g[i - 1] - g[i + w - 1] + g[i - w + 1] + 2 * g[i + 1] + g[i + w + 1];
+    const gy = -g[i - w - 1] - 2 * g[i - w] - g[i - w + 1] + g[i + w - 1] + 2 * g[i + w] + g[i + w + 1];
+    m[i] = Math.sqrt(gx * gx + gy * gy);
+  }
+  return m;
+}
+function blurPass(s, o, w, h, r, hz) {
+  const len = hz ? w : h, lines = hz ? h : w, step = hz ? 4 : w * 4, div = 2 * r + 1;
+  for (let l = 0; l < lines; l++) {
+    const base = hz ? l * w * 4 : l * 4;
+    for (let c = 0; c < 3; c++) {
+      let acc = 0;
+      for (let k = -r; k <= r; k++) acc += s[base + clamp(k, 0, len - 1) * step + c];
+      for (let x = 0; x < len; x++) {
+        o[base + x * step + c] = acc / div;
+        acc += s[base + Math.min(len - 1, x + r + 1) * step + c] - s[base + Math.max(0, x - r) * step + c];
+      }
+    }
+    for (let x = 0; x < len; x++) o[base + x * step + 3] = 255;
+  }
+}
+function boxBlur(d, w, h, r) { const t = new Uint8ClampedArray(d.length); blurPass(d, t, w, h, r, true); blurPass(t, d, w, h, r, false); }
+function fxToon(d, w, h, o) {
+  if (o.blur) boxBlur(d, w, h, o.blur);
+  const g = o.edge ? grayOf(d, w, h) : null;
+  applyMatrix(d, o.m, 1);
+  if (o.levels) {
+    const q = 255 / (o.levels - 1);
+    for (let p = 0; p < d.length; p += 4) { d[p] = Math.round(d[p] / q) * q; d[p + 1] = Math.round(d[p + 1] / q) * q; d[p + 2] = Math.round(d[p + 2] / q) * q; }
+  }
+  if (o.edge) {
+    const m = sobel(g, w, h);
+    for (let i = 0, p = 0; i < m.length; i++, p += 4) {
+      if (m[i] > o.th) { const f = 1 - o.edge * Math.min(1, (m[i] - o.th) / o.th); d[p] *= f; d[p + 1] *= f; d[p + 2] *= f; }
+    }
+  }
+}
+function fxSketch(d, w, h) {
+  const g = grayOf(d, w, h), m = sobel(g, w, h);
+  for (let i = 0, p = 0; i < m.length; i++, p += 4) {
+    let v = 255 - Math.min(255, m[i] * 1.1);
+    if (g[i] < 90) v -= (90 - g[i]) * 0.5;
+    v = clamp(v, 0, 255);
+    d[p] = v; d[p + 1] = v * .985; d[p + 2] = v * .95;
+  }
+}
+let _noise = null;
+function noiseCanvas() {
+  if (_noise) return _noise;
+  const c = document.createElement('canvas'); c.width = c.height = 256;
+  const x = c.getContext('2d'), im = x.createImageData(256, 256);
+  for (let p = 0; p < im.data.length; p += 4) { const v = 128 + (Math.random() - .5) * 140; im.data[p] = im.data[p + 1] = im.data[p + 2] = v; im.data[p + 3] = 255; }
+  x.putImageData(im, 0, 0); return (_noise = c);
+}
+const _wc = document.createElement('canvas');
+function postFilm(ctx, W, H, k) {
+  ctx.save();
+  ctx.globalCompositeOperation = 'overlay'; ctx.globalAlpha = .35 * k;
+  const o = (Math.random() * 256) | 0;
+  ctx.translate(-o, -o); ctx.fillStyle = ctx.createPattern(noiseCanvas(), 'repeat'); ctx.fillRect(0, 0, W + o, H + o);
+  ctx.restore(); ctx.save();
+  const g = ctx.createRadialGradient(W / 2, H / 2, Math.min(W, H) * .35, W / 2, H / 2, Math.max(W, H) * .75);
+  g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(1, `rgba(25,12,0,${.55 * k})`);
+  ctx.fillStyle = g; ctx.fillRect(0, 0, W, H); ctx.restore();
+}
+function postPaper(ctx, W, H, k) {
+  ctx.save(); ctx.globalCompositeOperation = 'overlay'; ctx.globalAlpha = .3 * k;
+  ctx.fillStyle = ctx.createPattern(noiseCanvas(), 'repeat'); ctx.fillRect(0, 0, W, H); ctx.restore();
+}
+function softCopy(ctx, W, H, div) {
+  const w = Math.max(4, (W / div) | 0), h = Math.max(4, (H / div) | 0);
+  _wc.width = w; _wc.height = h; _wc.getContext('2d').drawImage(ctx.canvas, 0, 0, w, h); return _wc;
+}
+function postSoft(ctx, W, H, k) { const c = softCopy(ctx, W, H, 8); ctx.save(); ctx.globalAlpha = .3 * k; ctx.drawImage(c, 0, 0, W, H); ctx.restore(); }
+function postGlow(ctx, W, H, k) { const c = softCopy(ctx, W, H, 10); ctx.save(); ctx.globalCompositeOperation = 'screen'; ctx.globalAlpha = .28 * k; ctx.drawImage(c, 0, 0, W, H); ctx.restore(); }
+const FILTERS = {
+  none: { name: '原圖', cat: 'tone' },
+  warm: { name: '暖陽', cat: 'tone', m: MX.chain(MX.sep(.35), MX.sat(1.3), MX.bri(1.05)) },
+  fresh: { name: '清新', cat: 'tone', m: MX.chain(MX.sat(1.2), MX.hue(-12), MX.bri(1.1)) },
+  jp: { name: '日系', cat: 'tone', m: MX.chain(MX.sat(.7), MX.bri(1.12), MX.con(.9), MX.off(4, 6, 12)) },
+  retro: { name: '復古', cat: 'tone', m: MX.chain(MX.sep(.7), MX.con(.9)) },
+  bw: { name: '黑白', cat: 'tone', m: MX.chain(MX.sat(0), MX.con(1.1)) },
+  film90: { name: '90年代底片', cat: 'tone', m: MX.chain(MX.sep(.25), MX.hue(-10), MX.sat(1.2), MX.con(1.08), MX.off(10, 2, -8)), post: postFilm },
+  beauty: { name: '自然美顏', cat: 'beauty', m: MX.chain(MX.bri(1.07), MX.con(.94), MX.off(6, 3, 0)), post: postSoft },
+  anime: { name: '日系動漫', cat: 'art', fx: (d, w, h) => fxToon(d, w, h, { blur: 1, m: MX.chain(MX.sat(1.6), MX.con(1.15), MX.bri(1.06)), levels: 6, th: 70, edge: .7 }) },
+  sketch: { name: '素描', cat: 'art', fx: fxSketch, post: postPaper },
+  water: { name: '水彩畫', cat: 'art', fx: (d, w, h) => fxToon(d, w, h, { blur: 3, m: MX.chain(MX.sat(1.3), MX.bri(1.12), MX.con(.92)), levels: 9, th: 45, edge: .25 }), post: postPaper },
+  hand: { name: '手繪', cat: 'art', fx: (d, w, h) => fxToon(d, w, h, { blur: 1, m: MX.chain(MX.sat(.65), MX.bri(1.08)), levels: 5, th: 50, edge: .9 }), post: postPaper },
+  toon3d: { name: '3D 卡通', cat: 'art', fx: (d, w, h) => fxToon(d, w, h, { blur: 2, m: MX.chain(MX.sat(1.5), MX.bri(1.1), MX.con(1.05)), levels: 0, th: 0, edge: 0 }), post: postGlow },
+  qanime: { name: 'Q版動畫', cat: 'art', scale: .4, fx: (d, w, h) => fxToon(d, w, h, { blur: 1, m: MX.chain(MX.sat(2), MX.con(1.25), MX.hue(6)), levels: 4, th: 45, edge: 1 }) }
+};
+function applyFilter(ctx, fid, k) {
+  const F = FILTERS[fid];
+  if (!F || fid === 'none' || k <= 0) return;
+  const W = ctx.canvas.width, H = ctx.canvas.height;
+  try {
+    if (F.m) { const img = ctx.getImageData(0, 0, W, H); applyMatrix(img.data, F.m, k); ctx.putImageData(img, 0, 0); }
+    if (F.fx) {
+      const sc = F.scale || .5, w = Math.max(2, Math.round(W * sc)), h = Math.max(2, Math.round(H * sc));
+      _wc.width = w; _wc.height = h;
+      const wx = _wc.getContext('2d');
+      wx.drawImage(ctx.canvas, 0, 0, w, h);
+      const img = wx.getImageData(0, 0, w, h); F.fx(img.data, w, h); wx.putImageData(img, 0, 0);
+      ctx.save(); ctx.globalAlpha = k; ctx.drawImage(_wc, 0, 0, W, H); ctx.restore();
+    }
+    if (F.post) F.post(ctx, W, H, k);
+  } catch (e) { console.warn(e); }
+}
+
+/* ================= 文字與時間戳 ================= */
+const FONTS = {
+  bold: { name: '粗黑體', css: '800 {s}px -apple-system,"PingFang TC",sans-serif' },
+  round: { name: '圓體', css: '600 {s}px "Yuanti TC","PingFang TC",sans-serif' },
+  serif: { name: '明體', css: '600 {s}px "Songti TC","Noto Serif TC",serif' },
+  type: { name: 'Typewriter', css: '600 {s}px "Courier New",monospace' }
+};
+const TCOLORS = ['#ffffff', '#000000', '#ffd34d', '#f59ab0', '#6fb3f2', '#7fd29a', '#ff8a1f'];
+const TSTYLES = [['none', '無'], ['shadow', '陰影'], ['stroke', '外框'], ['box', '底色']];
+const STICKERS = ['❤️', '✨', '☀️', '🌙', '⭐️', '🌸', '🍀', '🎉', '📍', '✈️', '🚗', '🍰', '☕️', '🐱', '🐶', '😊'];
+function drawTexts(ctx, ids) {
+  const W = ctx.canvas.width, H = ctx.canvas.height, u = W / 720, boxes = [];
+  S.cfg.texts.forEach(t => {
+    if (t.scope === 'clip' && !ids.includes(t.clipId)) return;
+    const size = t.size * u;
+    ctx.save();
+    ctx.font = (FONTS[t.font] || FONTS.bold).css.replace('{s}', size);
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    const lines = String(t.text || ' ').split('\n'), lh = size * 1.2;
+    const tw = Math.max(...lines.map(l => ctx.measureText(l).width), size * .5), th = lh * lines.length;
+    const cx = t.x * W, cy = t.y * H;
+    if (t.style === 'box' && !t.sticker) {
+      ctx.fillStyle = t.color === '#ffffff' ? 'rgba(0,0,0,.55)' : 'rgba(255,255,255,.88)';
+      roundPath(ctx, cx - tw / 2 - size * .35, cy - th / 2 - size * .15, tw + size * .7, th + size * .3, size * .25); ctx.fill();
+    }
+    ctx.fillStyle = t.color;
+    if (t.style === 'shadow' || t.sticker) { ctx.shadowColor = 'rgba(0,0,0,.45)'; ctx.shadowBlur = 10 * u; ctx.shadowOffsetY = 2 * u; }
+    lines.forEach((l, i) => {
+      const y = cy - th / 2 + lh * (i + .5);
+      if (t.style === 'stroke' && !t.sticker) { ctx.lineWidth = size * .14; ctx.lineJoin = 'round'; ctx.strokeStyle = t.color === '#000000' ? '#fff' : '#000'; ctx.strokeText(l, cx, y); }
+      ctx.fillText(l, cx, y);
+    });
+    ctx.restore();
+    boxes.push({ id: t.id, x: cx - tw / 2, y: cy - th / 2, w: tw, h: th });
+  });
+  S.textBoxes = boxes;
+}
+function drawStamp(ctx, ts) {
+  const f = S.cfg.fmt; if (f === 'off') return;
+  const W = ctx.canvas.width, H = ctx.canvas.height, u = W / 720, d = new Date(ts);
+  const FF = '-apple-system,"SF Pro Display","PingFang TC","Helvetica Neue",sans-serif';
+  ctx.save();
+  ctx.fillStyle = '#fff'; ctx.shadowColor = 'rgba(0,0,0,.5)'; ctx.shadowBlur = 14 * u;
+  if (f === 'clock') {
+    ctx.textAlign = 'center';
+    const top = H > W ? 300 * u : 230 * u;
+    ctx.font = `700 ${168 * u}px ${FF}`; ctx.fillText(hm(ts), W / 2, top);
+    ctx.font = `600 ${36 * u}px ${FF}`;
+    ctx.fillText(d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' }), W / 2, top + 56 * u);
+  } else {
+    let txt;
+    if (f === 'zh') txt = `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日 星期${WK[d.getDay()]}`;
+    else if (f === 'en') txt = d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+    else txt = `${d.getFullYear()}.${pad(d.getMonth() + 1)}.${pad(d.getDate())}  ${hm(ts)}`;
+    ctx.font = `600 ${38 * u}px ${FF}`;
+    const m = 48 * u, p = S.cfg.pos;
+    ctx.textAlign = p === 'br' ? 'right' : p === 'bc' ? 'center' : 'left';
+    const x = p === 'br' ? W - m : p === 'bc' ? W / 2 : m;
+    const y = p === 'tl' ? 120 * u : H - 90 * u;
+    ctx.fillText(txt, x, y);
+  }
+  ctx.restore();
+}
+
+/* ================= 合成一格畫面 ================= */
+function composeFrame(ctx, cells, srcs, prog) {
+  const W = ctx.canvas.width, H = ctx.canvas.height, L = S.cfg.layout, rects = cellRects(W, H);
+  ctx.fillStyle = (LAYOUTS[L].n > 1 && L !== 'pip') ? S.cfg.bColor : '#000';
+  ctx.fillRect(0, 0, W, H);
+  const zoom = S.cfg.autoZoom ? 1 + 0.1 * prog : 1;
+  rects.forEach((r, j) => {
+    if (L === 'pip' && j === 1) {
+      const b = Math.max(4, Math.round(S.cfg.border * W / 720));
+      ctx.save(); ctx.fillStyle = S.cfg.bColor; ctx.shadowColor = 'rgba(0,0,0,.35)'; ctx.shadowBlur = 12;
+      roundPath(ctx, r.x - b, r.y - b, r.w + 2 * b, r.h + 2 * b, r.round + b); ctx.fill(); ctx.restore();
+    }
+    drawCell(ctx, srcs[j], r, zoom);
+  });
+  applyFilter(ctx, S.cfg.filter, S.cfg.fInt / 100);
+  drawTexts(ctx, cells.map(c => c && c.id));
+  if (cells[0]) drawStamp(ctx, cells[0].created);
+}
+function setCanvasSize(res) {
+  const b = res || 720;
+  const w = b, h = S.cfg.aspect === '1:1' ? b : Math.round(b * 16 / 9);
+  if (pvCanvas.width !== w || pvCanvas.height !== h) { pvCanvas.width = w; pvCanvas.height = h; }
+  fitCanvas();
+}
+function stillPageIndex() { const n = LAYOUTS[S.cfg.layout].n; return S.sel >= 0 ? Math.floor(S.sel / n) : 0; }
+async function drawStill() {
+  if (S.playing) return;
+  const token = ++S.stillToken;
+  setCanvasSize(720);
+  const pg = pages(), cells = pg[stillPageIndex()] || pg[0];
+  const W = pvCanvas.width, H = pvCanvas.height;
+  $('#edEmpty').hidden = !!cells; $('#playBtn').hidden = !cells;
+  if (!cells) { pvCtx.fillStyle = '#111'; pvCtx.fillRect(0, 0, W, H); S.textBoxes = []; return; }
+  const srcs = await Promise.all(cells.map(stillSource));
+  if (token !== S.stillToken || S.playing) return;
+  composeFrame(pvCtx, cells, srcs, 0);
+  if (S.view === 'vText') drawTextSelection(pvCtx);
+  if (S.view === 'vLayout' && LAYOUTS[S.cfg.layout].n > 1) {
+    const u = W / 720;
+    cellRects(W, H).forEach((r, j) => {
+      pvCtx.save(); pvCtx.fillStyle = 'rgba(0,0,0,.55)'; roundPath(pvCtx, r.x + 10 * u, r.y + 10 * u, 44 * u, 44 * u, 22 * u); pvCtx.fill();
+      pvCtx.fillStyle = '#fff'; pvCtx.font = `700 ${24 * u}px -apple-system,sans-serif`; pvCtx.textAlign = 'center'; pvCtx.textBaseline = 'middle';
+      pvCtx.fillText(String(j + 1), r.x + 32 * u, r.y + 33 * u); pvCtx.restore();
+    });
+  }
+}
+function drawTextSelection(ctx) {
+  const b = S.textBoxes.find(x => x.id === S.textSel); if (!b) return;
+  const u = ctx.canvas.width / 720, m = 12 * u;
+  ctx.save(); ctx.strokeStyle = '#fff'; ctx.lineWidth = 3 * u; ctx.setLineDash([10 * u, 8 * u]);
+  ctx.strokeRect(b.x - m, b.y - m, b.w + 2 * m, b.h + 2 * m); ctx.restore();
+}
+
+/* ================= 聲音 ================= */
+const pool = [0, 1, 2, 3].map(() => {
+  const v = document.createElement('video');
+  v.playsInline = true; v.setAttribute('playsinline', ''); v.preload = 'auto'; v.className = 'hidv';
+  document.body.appendChild(v); return v;
+});
+let AC = null, AD = null, origGain = null, musicGain = null;
+function ensureAudio() {
+  if (AC) { if (AC.state === 'suspended') AC.resume(); return AC; }
+  try {
+    AC = new (window.AudioContext || window.webkitAudioContext)();
+    origGain = AC.createGain(); musicGain = AC.createGain();
+    origGain.connect(AC.destination); musicGain.connect(AC.destination);
+    if (AC.createMediaStreamDestination) { AD = AC.createMediaStreamDestination(); origGain.connect(AD); musicGain.connect(AD); }
+    pool.forEach(v => { try { AC.createMediaElementSource(v).connect(origGain); } catch (e) {} });
+  } catch (e) { AC = null; }
+  return AC;
+}
+let primeUrl = null;
+function prime() {
+  ensureAudio();
+  const c = curItems().find(x => x.type === 'video'); if (!c) return;
+  const v = pool[0]; v.muted = !S.cfg.orig;
+  if (primeUrl) URL.revokeObjectURL(primeUrl);
+  primeUrl = URL.createObjectURL(c.blob); v.src = primeUrl;
+  const p = v.play(); if (p) p.then(() => v.pause()).catch(() => {});
+}
+
+/* 內建音樂：用程式即時合成，不需要下載、沒有版權問題 */
+const TRACKS = [
+  { id: 'morning', name: '晨光散步', cat: '輕快', color: '#e9a96b', bpm: 112, chords: [[60, 64, 67], [55, 59, 62], [57, 60, 64], [53, 57, 60]], arp: 8, kick: 1, hat: 1, seed: 3 },
+  { id: 'city', name: '城市午後', cat: 'Lo-fi', color: '#7b6fa8', bpm: 80, chords: [[62, 65, 69, 72], [55, 59, 62, 65], [60, 64, 67, 71], [57, 60, 64, 67]], arp: 4, kick: 1, hat: 1, swing: 1, lowpass: 2600, vinyl: 1, seed: 7 },
+  { id: 'sea', name: '海風的信', cat: '溫柔', color: '#5b9bc4', bpm: 70, chords: [[53, 57, 60], [48, 52, 55], [50, 53, 57], [46, 50, 53]], arp: 6, seed: 11 },
+  { id: 'trip', name: '週末小旅行', cat: '旅行', color: '#6f9c5c', bpm: 122, chords: [[55, 59, 62], [50, 54, 57], [52, 55, 59], [48, 52, 55]], arp: 8, kick: 2, hat: 1, clap: 1, seed: 5 },
+  { id: 'rain', name: '雨天咖啡館', cat: 'Lo-fi', color: '#a36b5b', bpm: 72, chords: [[57, 60, 64, 67], [50, 53, 57, 60], [55, 59, 62, 65], [48, 52, 55, 59]], arp: 4, kick: 1, hat: 1, swing: 1, lowpass: 2200, rain: 1, seed: 9 }
+];
+function renderOffline(oc) {
+  return new Promise((res, rej) => {
+    oc.oncomplete = e => res(e.renderedBuffer);
+    const p = oc.startRendering(); if (p && p.then) p.then(res, rej);
+  });
+}
+async function synthTrack(p) {
+  const OAC = window.OfflineAudioContext || window.webkitOfflineAudioContext;
+  if (!OAC) throw new Error('no offline audio');
+  const sr = 44100, beat = 60 / p.bpm, bar = beat * 4, bars = 8, dur = bars * bar;
+  const oc = new OAC(2, Math.ceil(sr * dur), sr);
+  let rs = p.seed || 1; const rnd = () => { rs = (rs * 16807) % 2147483647; return rs / 2147483647; };
+  const master = oc.createGain(); master.gain.value = .55;
+  if (p.lowpass) { const lp = oc.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = p.lowpass; master.connect(lp); lp.connect(oc.destination); }
+  else master.connect(oc.destination);
+  const nb = oc.createBuffer(1, sr, sr), nd = nb.getChannelData(0);
+  for (let i = 0; i < sr; i++) nd[i] = Math.random() * 2 - 1;
+  const mtof = m => 440 * Math.pow(2, (m - 69) / 12);
+  const tone = (f, t, d, type, vol, a, r, pluck) => {
+    const o = oc.createOscillator(); o.type = type; o.frequency.value = f;
+    const g = oc.createGain();
+    g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(vol, t + a);
+    if (pluck) g.gain.exponentialRampToValueAtTime(0.0001, t + d);
+    else { g.gain.setValueAtTime(vol, Math.max(t + a, t + d - r)); g.gain.linearRampToValueAtTime(0.0001, t + d); }
+    o.connect(g); g.connect(master); o.start(t); o.stop(t + d + .05);
+  };
+  const noise = (t, d, vol, ftype, freq) => {
+    const s = oc.createBufferSource(); s.buffer = nb;
+    const f = oc.createBiquadFilter(); f.type = ftype; f.frequency.value = freq;
+    const g = oc.createGain(); g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.0001, t + d);
+    s.connect(f); f.connect(g); g.connect(master); s.start(t, rnd() * .5); s.stop(t + d + .02);
+  };
+  const kick = t => {
+    const o = oc.createOscillator(); o.type = 'sine';
+    o.frequency.setValueAtTime(130, t); o.frequency.exponentialRampToValueAtTime(45, t + .12);
+    const g = oc.createGain(); g.gain.setValueAtTime(.7, t); g.gain.exponentialRampToValueAtTime(.0001, t + .28);
+    o.connect(g); g.connect(master); o.start(t); o.stop(t + .3);
+  };
+  for (let b = 0; b < bars; b++) {
+    const ch = p.chords[b % p.chords.length], t0 = b * bar;
+    ch.forEach(m => { tone(mtof(m), t0, bar, 'sine', .045, .25, .4); tone(mtof(m) * 1.003, t0, bar, 'triangle', .02, .3, .4); });
+    tone(mtof(ch[0] - 12), t0, bar * .95, 'sine', .16, .02, .2);
+    if (p.arp) for (let s = 0; s < p.arp; s++) {
+      if (rnd() < .15) continue;
+      let n = ch[s % ch.length] + 12; if (rnd() < .25) n += 12;
+      tone(mtof(n), t0 + s * bar / p.arp, .45, 'triangle', .07, .005, .4, true);
+    }
+    if (p.kick) for (let i = 0; i < 4; i++) if (p.kick === 2 || i % 2 === 0) kick(t0 + i * beat);
+    if (p.hat) for (let i = 0; i < 8; i++) noise(t0 + i * beat / 2 + ((p.swing && i % 2) ? beat * .09 : 0), .05, i % 2 ? .05 : .08, 'highpass', 7000);
+    if (p.clap) { noise(t0 + beat, .15, .18, 'bandpass', 1500); noise(t0 + 3 * beat, .15, .18, 'bandpass', 1500); }
+  }
+  if (p.rain) {
+    const s = oc.createBufferSource(); s.buffer = nb; s.loop = true;
+    const f = oc.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = 1400;
+    const g = oc.createGain(); g.gain.value = .06;
+    s.connect(f); f.connect(g); g.connect(master); s.start(0); s.stop(dur);
+  }
+  if (p.vinyl) for (let i = 0; i < 50; i++) noise(rnd() * dur, .01, .12, 'highpass', 2000);
+  return renderOffline(oc);
+}
+function decodeAudio(ab) {
+  return new Promise((res, rej) => { const p = AC.decodeAudioData(ab, res, rej); if (p && p.then) p.then(res, rej); });
+}
+async function getMusicBuffer(m) {
+  m = m || S.cfg.music;
+  if (!m || m.kind === 'none') return null;
+  ensureAudio(); if (!AC) return null;
+  const key = m.kind + ':' + m.id;
+  if (bufCache.has(key)) return bufCache.get(key);
+  let buf = null;
+  if (m.kind === 'lib') { const t = TRACKS.find(x => x.id === m.id); if (t) buf = await synthTrack(t); }
+  else if (m.kind === 'file') { const rec = S.musicFiles.find(x => x.id === m.id); if (rec) buf = await decodeAudio(await rec.blob.arrayBuffer()); }
+  if (buf) bufCache.set(key, buf);
+  return buf;
+}
+let musicNode = null, previewTimer = null;
+function startMusic(buf, total) {
+  stopMusic(); if (!buf || !AC) return;
+  const src = AC.createBufferSource(); src.buffer = buf; src.loop = true; src.connect(musicGain);
+  const now = AC.currentTime, vol = S.cfg.mVol / 100;
+  musicGain.gain.cancelScheduledValues(now); musicGain.gain.setValueAtTime(vol, now);
+  if (S.cfg.fade && total > 2) { musicGain.gain.setValueAtTime(vol, now + total - 1.5); musicGain.gain.linearRampToValueAtTime(0.0001, now + total); }
+  src.start(now, clamp(S.cfg.music.start || 0, 0, Math.max(0, buf.duration - .1)));
+  musicNode = src;
+}
+function stopMusic() {
+  clearTimeout(previewTimer);
+  if (musicNode) { try { musicNode.stop(); } catch (e) {} try { musicNode.disconnect(); } catch (e) {} musicNode = null; }
+  S.previewing = null;
+}
+
+/* ================= 播放 / 輸出 ================= */
+async function renderPage(ctx, cells, sig, prog) {
+  const urls = [], srcs = [], d = pageDur(cells);
+  await Promise.all(cells.map(async (c, j) => {
+    if (c.type === 'image') {
+      const i = await getImg(c).catch(() => null);
+      srcs[j] = i ? { el: i, w: i.naturalWidth, h: i.naturalHeight } : null; return;
+    }
+    const v = pool[j], u = URL.createObjectURL(c.blob); urls.push(u);
+    v.muted = j !== 0 || !S.cfg.orig; v.src = u; v.load();
+    const ok = await once(v, 'loadeddata', 5000);
+    srcs[j] = ok ? { el: v, video: true, clip: c, w: v.videoWidth, h: v.videoHeight } : null;
+  }));
+  if (sig.stop) { urls.forEach(u => URL.revokeObjectURL(u)); return; }
+  await Promise.all(srcs.map(async s => {
+    if (!s || !s.video) return;
+    try { s.el.currentTime = 0; } catch (e) {}
+    try { await s.el.play(); } catch (e) { s.el.muted = true; try { await s.el.play(); } catch (_) {} }
+  }));
+  const t0 = performance.now();
+  await new Promise(res => {
+    const step = () => {
+      const t = (performance.now() - t0) / 1000;
+      srcs.forEach(s => {
+        if (s && s.video) { s.w = s.el.videoWidth; s.h = s.el.videoHeight; if (s.el.currentTime >= s.clip.dur && !s.el.paused) s.el.pause(); }
+      });
+      composeFrame(ctx, cells, srcs, Math.min(1, t / d));
+      prog(Math.min(1, t / d));
+      if (sig.stop || t >= d) return res();
+      requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+  });
+  srcs.forEach(s => { if (s && s.video) s.el.pause(); });
+  urls.forEach(u => URL.revokeObjectURL(u));
+}
+async function renderAll(ctx, { record, sig, onProgress, onPage, res }) {
+  const pg = pages(); if (!pg.length) return null;
+  setCanvasSize(res || 720);
+  const total = pg.reduce((a, c) => a + pageDur(c), 0);
+  ensureAudio();
+  if (origGain) origGain.gain.value = S.cfg.orig ? S.cfg.oVol / 100 : 0;
+  let buf = null;
+  try { buf = await getMusicBuffer(); } catch (e) { console.warn(e); }
+  let rec = null, chunks = [], vs = null, mime = '';
+  if (record) {
+    if (!pvCanvas.captureStream) throw new Error('此裝置不支援影片合成，請更新 iOS');
+    mime = pickMime(); if (mime === null) throw new Error('此裝置不支援錄製');
+    ctx.fillStyle = '#000'; ctx.fillRect(0, 0, pvCanvas.width, pvCanvas.height);
+    vs = pvCanvas.captureStream(30);
+    const tracks = [...vs.getVideoTracks()];
+    if (AD) tracks.push(...AD.stream.getAudioTracks());
+    const ms = new MediaStream(tracks);
+    const bits = (res || 720) >= 1080 ? 12e6 : 8e6;
+    try { rec = new MediaRecorder(ms, mime ? { mimeType: mime, videoBitsPerSecond: bits } : {}); }
+    catch (e) { rec = new MediaRecorder(ms); }
+    rec.ondataavailable = e => { if (e.data && e.data.size) chunks.push(e.data); };
+    rec.start(250);
+  }
+  startMusic(buf, total);
+  let done = 0;
+  for (let i = 0; i < pg.length; i++) {
+    if (sig.stop) break;
+    onPage && onPage(i);
+    const d = pageDur(pg[i]);
+    await renderPage(ctx, pg[i], sig, p => onProgress && onProgress((done + p * d) / total));
+    done += d;
+  }
+  stopMusic();
+  if (!record) return null;
+  await wait(250);
+  const stopped = new Promise(r => { rec.onstop = r; });
+  rec.stop(); await stopped;
+  vs.getTracks().forEach(t => t.stop());
+  if (sig.stop) return null;
+  return new Blob(chunks, { type: rec.mimeType || mime || 'video/mp4' });
+}
+async function stopPreview() {
+  stopMusic();
+  if (!S.playing || !S.sig) return;
+  S.sig.stop = true;
+  try { await S.playPromise; } catch (e) {}
+}
+async function togglePlay() {
+  if (S.playing) { await stopPreview(); return; }
+  if (!curItems().length) return;
+  prime();
+  S.playing = true; S.sig = { stop: false };
+  $$('.play').forEach(b => { b.classList.add('playing'); b.textContent = '❚❚'; });
+  const n = LAYOUTS[S.cfg.layout].n;
+  const total = pages().reduce((a, c) => a + pageDur(c), 0);
+  S.playPromise = renderAll(pvCtx, {
+    record: false, sig: S.sig,
+    onProgress: p => {
+      $('#pvBar').style.width = $('#xBar').style.width = (p * 100) + '%';
+      $('#xTime').textContent = `${mmss(p * total)} / ${mmss(total)}`;
+    },
+    onPage: i => renderTL(i * n, n)
+  }).catch(e => console.warn(e));
+  await S.playPromise;
+  S.playing = false;
+  $$('.play').forEach(b => { b.classList.remove('playing'); b.textContent = '▶'; });
+  $('#pvBar').style.width = $('#xBar').style.width = '0';
+  $('#xTime').textContent = `0:00 / ${mmss(total)}`;
+  renderTL(); drawStill();
+}
+
+/* ================= 編輯器 ================= */
+const FMTS = [['zh', '日期+星期'], ['en', 'English'], ['dt', '日期時間'], ['clock', '大時鐘'], ['off', '關閉']];
+const POSS = [['bl', '左下'], ['bc', '置中'], ['br', '右下'], ['tl', '左上']];
+function chipsHTML(list, cur, attr) { return list.map(([k, l]) => `<button data-${attr}="${k}" class="${cur === k ? 'on' : ''}">${l}</button>`).join(''); }
+function renderEditor() {
+  $('#fmtSeg').innerHTML = chipsHTML(FMTS, S.cfg.fmt, 'k');
+  $('#posSeg').innerHTML = chipsHTML(POSS, S.cfg.pos, 'k');
+  $('#posRow').hidden = S.cfg.fmt === 'off' || S.cfg.fmt === 'clock';
+  $('#origSw').checked = S.cfg.orig;
+  $('#tvCrop').textContent = S.cfg.aspect;
+  $('#tvFilter').textContent = FILTERS[S.cfg.filter] ? FILTERS[S.cfg.filter].name : '原圖';
+  $('#tvLayout').textContent = LAYOUTS[S.cfg.layout].name;
+  $('#tvText').textContent = S.cfg.texts.length ? S.cfg.texts.length + ' 則' : '無';
+  renderTL();
+}
+function saveTL() { S.timeline = S.timeline.filter(id => S.clips.some(c => c.id === id)); LS.set('timeline', S.timeline); }
+function renderTL(nowIdx = -1, nowN = 1) {
+  const items = curItems();
+  $('#tl').innerHTML = items.map((c, i) =>
+    `<button class="tile ${i === S.sel ? 'sel' : ''} ${(i >= nowIdx && i < nowIdx + nowN && nowIdx >= 0) ? 'now' : ''}" data-i="${i}"><img src="${c.thumb || ''}" alt=""><em>${c.type === 'image' ? '照片' : c.dur + 's'}</em></button>`
+  ).join('') + `<button class="tile add" id="addTile" aria-label="加入片段">＋</button>`;
+  $('#tlActs').hidden = S.sel < 0 || S.sel >= items.length;
+  const pg = pages(), tot = pg.reduce((a, c) => a + pageDur(c), 0);
+  $('#totalDur').textContent = items.length ? `${items.length} 段 · 約 ${Math.round(tot)} 秒` : '';
+}
+function openEditor() {
+  saveTL();
+  if (!S.timeline.length) {
+    const today = S.clips.filter(c => dayKey(c.created) === dayKey(Date.now()));
+    S.timeline = (today.length ? today : S.clips.slice(-10)).map(c => c.id);
+    saveTL();
+  }
+  S.sel = -1;
+  showView('vEdit'); renderEditor(); drawStill();
+}
+function backToEditor() { stopMusic(); showView('vEdit'); renderEditor(); drawStill(); }
+async function openTool(id) {
+  await stopPreview();
+  showView(id);
+  if (id === 'vCrop') renderCrop();
+  if (id === 'vFilter') renderFilterUI(true);
+  if (id === 'vLayout') renderLayoutUI();
+  if (id === 'vText') renderTextUI();
+  if (id === 'vMusic') renderMusicUI();
+  drawStill();
+}
+
+/* ---------- 比例 ---------- */
+function renderCrop() {
+  $$('#aspectCards button').forEach(b => b.classList.toggle('on', b.dataset.a === S.cfg.aspect));
+  $('#blurSw').checked = S.cfg.blurBg;
+  $('#cropHint').textContent = S.cfg.blurBg ? '整個畫面都會保留，空白處用模糊背景補滿' : '拖曳畫面，調整要保留的位置';
+}
+
+/* ---------- 濾鏡 ---------- */
+const FCATS = [['all', '全部'], ['tone', '色調'], ['beauty', '美顏'], ['art', '藝術風格']];
+let thumbToken = 0;
+async function renderFilterUI(rebuildThumbs) {
+  $('#fCats').innerHTML = chipsHTML(FCATS, S.fCat, 'c');
+  const ids = Object.keys(FILTERS).filter(k => S.fCat === 'all' || FILTERS[k].cat === S.fCat);
+  $('#fGrid').innerHTML = ids.map(k => `<button data-f="${k}" class="${S.cfg.filter === k ? 'on' : ''}"><canvas width="112" height="132" data-fc="${k}"></canvas><span>${FILTERS[k].name}${FILTERS[k].cat === 'art' ? '<em>風格</em>' : ''}</span></button>`).join('');
+  $('#fInt').value = S.cfg.fInt; $('#fIntV').textContent = S.cfg.fInt + '%';
+  const token = ++thumbToken;
+  const pg = pages(), cells = pg[stillPageIndex()] || pg[0];
+  const src = cells ? await stillSource(cells[0]) : null;
+  for (const cv of $$('#fGrid canvas')) {
+    if (token !== thumbToken) return;
+    const x = cv.getContext('2d');
+    if (!src) { x.fillStyle = '#333'; x.fillRect(0, 0, cv.width, cv.height); continue; }
+    const k = Math.max(cv.width / src.w, cv.height / src.h);
+    x.drawImage(src.el, (cv.width - src.w * k) / 2, (cv.height - src.h * k) / 2, src.w * k, src.h * k);
+    applyFilter(x, cv.dataset.fc, 1);
+    await wait(0);
+  }
+}
+
+/* ---------- 版面 ---------- */
+const LICONS = {
+  one: '<s style="position:absolute;inset:3px"></s>',
+  tb: '<s style="height:26px"></s><s style="height:26px;margin-top:2px"></s>',
+  lr: '<span style="display:flex;gap:2px;height:100%"><s style="flex:1"></s><s style="flex:1"></s></span>',
+  three: '<s style="height:17px"></s><s style="height:17px;margin-top:2px"></s><s style="height:17px;margin-top:2px"></s>',
+  four: '<span style="display:grid;grid-template-columns:1fr 1fr;gap:2px;height:100%"><s></s><s></s><s></s><s></s></span>',
+  pip: '<s style="position:absolute;inset:3px"></s><s style="position:absolute;left:6px;bottom:6px;width:16px;height:20px;border:1.5px solid #fff;background:#a4a4ac"></s>'
+};
+const BCOLORS = ['#ffffff', '#000000', '#f3e6cf', '#f2c6c9', '#c8dcef'];
+function renderLayoutUI() {
+  $('#lGrid').innerHTML = Object.keys(LAYOUTS).map(k => `<button data-l="${k}" class="${S.cfg.layout === k ? 'on' : ''}"><span class="ic">${LICONS[k]}</span><span>${LAYOUTS[k].name}</span></button>`).join('');
+  const n = LAYOUTS[S.cfg.layout].n;
+  $('#layoutHint').textContent = n > 1 ? `時間軸上每 ${n} 段組成一個畫面（順序可在時間軸調整）` : '一次顯示一段片段';
+  $('#bRange').value = S.cfg.border; $('#bVal').textContent = S.cfg.border;
+  $('#bColors').innerHTML = BCOLORS.map(c => `<button data-c="${c}" class="${S.cfg.bColor === c ? 'on' : ''}" style="background:${c}" aria-label="邊框顏色"></button>`).join('');
+  $('#zoomSw').checked = S.cfg.autoZoom;
+}
+
+/* ---------- 文字 ---------- */
+function selText() { return S.cfg.texts.find(t => t.id === S.textSel); }
+function renderTextUI() {
+  const t = selText();
+  $('#tInput').value = t && !t.sticker ? t.text : '';
+  $('#tInput').disabled = !t || !!t.sticker;
+  $$('#tTabs button').forEach(b => b.classList.toggle('on', b.dataset.t === S.tTab));
+  ['font', 'color', 'style', 'sticker'].forEach(k => { $('#tp' + k[0].toUpperCase() + k.slice(1)).hidden = S.tTab !== k; });
+  $('#fontChips').innerHTML = Object.keys(FONTS).map(k => `<button class="fontBtn ${t && t.font === k ? 'on' : ''}" data-font="${k}" style="font:${FONTS[k].css.replace('{s}', 16)}">${FONTS[k].name}</button>`).join('');
+  $('#tColors').innerHTML = TCOLORS.map(c => `<button data-c="${c}" class="${t && t.color === c ? 'on' : ''}" style="background:${c}" aria-label="文字顏色"></button>`).join('');
+  $('#styleChips').innerHTML = chipsHTML(TSTYLES, t ? t.style : '', 'st');
+  $('#stickerGrid').innerHTML = STICKERS.map(s => `<button data-sk="${s}">${s}</button>`).join('');
+  $('#tSize').value = t ? t.size : 56;
+  $$('#scopeChips button').forEach(b => b.classList.toggle('on', !!t && t.scope === b.dataset.s));
+  $('#textHint').textContent = S.cfg.texts.length ? '點文字選取，拖曳可以移動' : '點「＋ 新增文字」或「貼圖」開始';
+}
+function addText(text, sticker) {
+  const t = { id: uid(), text, x: .5, y: sticker ? .45 : .3, size: sticker ? 110 : 56, font: 'bold', color: '#ffffff', style: 'shadow', scope: 'all', clipId: null, sticker: !!sticker };
+  S.cfg.texts.push(t); S.textSel = t.id; saveCfg(); renderTextUI(); drawStill();
+  if (!sticker) { const i = $('#tInput'); i.focus(); i.select(); }
+}
+function updText(patch) { const t = selText(); if (!t) { toast('請先點選一則文字'); return; } Object.assign(t, patch); saveCfg(); renderTextUI(); drawStill(); }
+
+/* ---------- 音樂 ---------- */
+const MCATS = ['全部', '輕快', '溫柔', '旅行', 'Lo-fi'];
+function renderMusicUI() {
+  const m = S.cfg.music;
+  $$('#mTabs button').forEach(b => b.classList.toggle('on', b.dataset.m === S.mTab));
+  $('#mImport').hidden = S.mTab !== 'file';
+  $('#mCats').hidden = S.mTab !== 'lib';
+  $('#mCats').innerHTML = MCATS.map(c => `<button data-c="${c}" class="${S.mCat === c ? 'on' : ''}">${c}</button>`).join('');
+  const play = '<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>';
+  let html = '';
+  if (S.mTab === 'lib') {
+    html = TRACKS.filter(t => S.mCat === '全部' || t.cat === S.mCat).map(t => {
+      const on = m.kind === 'lib' && m.id === t.id;
+      return `<button class="track ${on ? 'on' : ''}" data-lib="${t.id}"><span class="cv" style="background:${t.color}">${play}</span><span><b>${t.name}</b><small>${t.cat} · 內建音樂</small></span><span class="ck">${on ? '✓' : ''}</span></button>`;
+    }).join('');
+  } else if (S.mTab === 'file') {
+    html = S.musicFiles.length ? S.musicFiles.map(f => {
+      const on = m.kind === 'file' && m.id === f.id;
+      return `<button class="track ${on ? 'on' : ''}" data-file="${f.id}"><span class="cv" style="background:#4a4a52">${play}</span><span><b>${esc(f.name)}</b><small>我匯入的</small></span><span class="ck">${on ? '✓' : ''}</span></button>`;
+    }).join('') : '<p class="emptyTxt">還沒有匯入音樂。先把 mp3 或 m4a 存到 iPhone 的「檔案」App，再按上面的按鈕匯入。</p>';
+  } else {
+    html = '<p class="emptyTxt">目前不使用背景音樂，影片只會有原聲。</p>';
+  }
+  $('#mList').innerHTML = html;
+  $('#mVol').value = S.cfg.mVol; $('#mVolV').textContent = S.cfg.mVol + '%';
+  $('#oVol').value = S.cfg.oVol; $('#oVolV').textContent = S.cfg.oVol + '%';
+  $('#fadeSw').checked = S.cfg.fade;
+  $('#mStart').value = m.start || 0; $('#mStartV').textContent = mmss(m.start || 0);
+  drawWave();
+}
+async function drawWave() {
+  const cv = $('#wave'), x = cv.getContext('2d');
+  x.clearRect(0, 0, cv.width, cv.height);
+  const m = S.cfg.music;
+  if (m.kind === 'none') { $('#mStart').disabled = true; return; }
+  $('#mStart').disabled = false;
+  let buf = null;
+  const key = m.kind + ':' + m.id;
+  if (bufCache.has(key)) buf = bufCache.get(key);
+  if (!buf) return;
+  $('#mStart').max = Math.max(1, Math.floor(buf.duration - 1));
+  const data = buf.getChannelData(0), bars = 60, step = Math.floor(data.length / bars);
+  const start = (m.start || 0) / buf.duration;
+  for (let i = 0; i < bars; i++) {
+    let peak = 0;
+    for (let j = 0; j < step; j += 64) peak = Math.max(peak, Math.abs(data[i * step + j]));
+    const h = Math.max(3, Math.min(1, peak * 1.6) * cv.height);
+    x.fillStyle = (i / bars >= start && i / bars < start + .3) ? '#ff8a1f' : '#4a4a50';
+    x.fillRect(i * (cv.width / bars) + 1, (cv.height - h) / 2, cv.width / bars - 2, h);
+  }
+}
+async function pickMusic(m) {
+  if (S.playing) await stopPreview();
+  const same = S.cfg.music.kind === m.kind && S.cfg.music.id === m.id;
+  if (same && S.previewing) { stopMusic(); return; }
+  if (!same) S.cfg.music = Object.assign({ start: 0 }, m);
+  saveCfg(); renderMusicUI();
+  ensureAudio();
+  if (!AC) { toast('這台裝置無法播放音樂'); return; }
+  if (!bufCache.has(m.kind + ':' + m.id)) toast('準備音樂中…', 1200);
+  let buf = null;
+  try { buf = await getMusicBuffer(); } catch (e) { toast('這個音樂檔無法讀取'); return; }
+  drawWave();
+  if (!buf || S.view !== 'vMusic') return;
+  stopMusic();
+  const src = AC.createBufferSource(); src.buffer = buf; src.loop = true; src.connect(musicGain);
+  musicGain.gain.cancelScheduledValues(AC.currentTime); musicGain.gain.setValueAtTime(S.cfg.mVol / 100, AC.currentTime);
+  src.start(AC.currentTime, clamp(S.cfg.music.start || 0, 0, buf.duration - .1));
+  musicNode = src; S.previewing = true;
+  previewTimer = setTimeout(stopMusic, 10000);
+}
+
+/* ---------- 輸出 ---------- */
+function openExport() {
+  if (!curItems().length) { toast('請先加入片段'); return; }
+  stopPreview().then(() => {
+    showView('vExport');
+    $('#expPrep').hidden = false; $('#expRun').hidden = true; $('#expOut').hidden = true;
+    $('#expTitle').textContent = '預覽影片'; $('#expBack').hidden = false;
+    const tt = pages().reduce((a, c) => a + pageDur(c), 0);
+    $('#xTime').textContent = `0:00 / ${mmss(tt)}`; $('#xBar').style.width = '0'; $('#expDoneBtn').hidden = true; $('#expSpacer').hidden = false;
+    $$('#resChips button').forEach(b => b.classList.toggle('on', +b.dataset.r === S.cfg.res));
+    const pg = pages(), tot = pg.reduce((a, c) => a + pageDur(c), 0);
+    const parts = [`${curItems().length} 段`, `約 ${Math.round(tot)} 秒`, S.cfg.aspect];
+    if (S.cfg.filter !== 'none') parts.push(FILTERS[S.cfg.filter].name);
+    if (S.cfg.music.kind !== 'none') parts.push('♪ ' + S.cfg.music.name);
+    $('#expInfo').textContent = parts.join(' · ');
+    drawStill();
+  });
+}
+async function doExport() {
+  if (S.playing) await stopPreview(); else prime();
+  $('#expPrep').hidden = true; $('#expRun').hidden = false; $('#expBack').hidden = true;
+  $('#expRunSlot').appendChild(pvCanvas);
+  $('#expPct').textContent = '0%'; $('#expBar').style.width = '0';
+  S.playing = true; S.sig = { stop: false };
+  let blob = null;
+  try {
+    blob = await renderAll(pvCtx, {
+      record: true, sig: S.sig, res: S.cfg.res,
+      onProgress: p => { const v = Math.round(p * 100); $('#expPct').textContent = v + '%'; $('#expBar').style.width = v + '%'; }
+    });
+  } catch (e) { toast(e.message || '合成失敗'); }
+  S.playing = false;
+  if (!blob || S.sig.stop) { openExport(); return; }
+  const items = curItems();
+  const film = { id: uid(), blob, created: Date.now(), thumb: items[0].thumb, count: items.length };
+  try { await DB.put('films', film); } catch (e) {}
+  S.films.unshift(film); S.lastFilm = film;
+  $('#expRun').hidden = true; $('#expOut').hidden = false;
+  $('#expTitle').textContent = '影片完成了'; $('#expDoneBtn').hidden = false; $('#expSpacer').hidden = true; $('#expBack').hidden = false;
+  const v = $('#expVideo'); if (v.src) URL.revokeObjectURL(v.src); v.src = URL.createObjectURL(blob);
+  $('#expMeta').textContent = `${zhDay(film.created)} · ${items.length} 段 · ${S.cfg.res}p`;
+}
+function fileName(film) {
+  const d = new Date(film.created);
+  const ext = (film.blob.type || '').includes('webm') ? 'webm' : 'mp4';
+  return `瞬記_${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}_${pad(d.getHours())}${pad(d.getMinutes())}.${ext}`;
+}
+async function shareBlob(blob, name) {
+  const type = (blob.type || 'video/mp4').split(';')[0];
+  const file = new File([blob], name, { type });
+  if (navigator.canShare && navigator.canShare({ files: [file] })) {
+    try { await navigator.share({ files: [file] }); return true; }
+    catch (e) { if (e.name === 'AbortError') return true; }
+  }
+  downloadBlob(blob, name); return false;
+}
+function downloadBlob(blob, name) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = name;
+  document.body.appendChild(a); a.click(); a.remove();
+  toast('已下載，可在「檔案」App 的「下載項目」找到', 3000);
+}
+
+/* ================= 片段選擇 ================= */
+function groupByDay(list) {
+  const g = new Map();
+  [...list].sort((a, b) => b.created - a.created).forEach(c => { const k = dayKey(c.created); if (!g.has(k)) g.set(k, []); g.get(k).push(c); });
+  return g;
+}
+function renderLib() {
+  const box = $('#lib');
+  if (!S.clips.length) { box.innerHTML = '<p class="emptyTxt">還沒有片段，回相機拍幾秒，或從相簿匯入。</p>'; return; }
+  let html = '';
+  for (const [, list] of groupByDay(S.clips)) {
+    html += `<div class="grpH">${zhDay(list[0].created)} · ${list.length} 段</div><div class="grid">`;
+    html += list.map(c => {
+      const idx = S.timeline.indexOf(c.id);
+      return `<div class="cell ${idx >= 0 ? 'on' : ''}" data-id="${c.id}"><img src="${c.thumb || ''}" alt="">
+        <span class="ck">${idx >= 0 ? idx + 1 : ''}</span><button class="x" data-del="${c.id}" aria-label="刪除">✕</button>
+        <span class="lb">${hm(c.created)} · ${c.type === 'image' ? '照片' : c.dur + 's'}</span></div>`;
+    }).join('') + '</div>';
+  }
+  box.innerHTML = html;
+}
+function openSheet() { renderLib(); $('#sheet').classList.add('on'); }
+function closeSheet() { $('#sheet').classList.remove('on'); S.sel = -1; renderTL(); drawStill(); }
+async function deleteClip(id) {
+  if (!confirm('要永久刪除這個片段嗎？')) return;
+  try { await DB.del('clips', id); } catch (e) {}
+  S.clips = S.clips.filter(c => c.id !== id); imgCache.delete(id); frameCache.delete(id);
+  saveTL(); renderLib(); renderTL(); refreshCamUI(); renderDiary();
+}
+
+/* ================= 影像日記 ================= */
+function renderDiary() {
+  $('#filmCount').textContent = S.films.length ? `${S.films.length} 支` : '';
+  $('#clipCount').textContent = S.clips.length ? `${S.clips.length} 段` : '';
+  $('#films').innerHTML = S.films.length ? S.films.map(f =>
+    `<div class="cell" data-film="${f.id}"><img src="${f.thumb || ''}" alt=""><span class="lb">${zhDay(f.created)}<br>${f.count} 段</span></div>`
+  ).join('') : '<p class="emptyTxt">合成並輸出後，影片會收藏在這裡。</p>';
+  let html = '';
+  for (const [, list] of groupByDay(S.clips)) {
+    html += `<div class="grpH">${zhDay(list[0].created)} · ${list.length} 段</div><div class="grid">` +
+      list.map(c => `<div class="cell" data-clip="${c.id}"><img src="${c.thumb || ''}" alt=""><span class="lb">${hm(c.created)}</span></div>`).join('') + '</div>';
+  }
+  $('#allClips').innerHTML = html || '<p class="emptyTxt">還沒有片段。</p>';
+}
+function openPlayer(kind, item) {
+  if (!item) return;
+  S.player = { kind, item };
+  const v = $('#plVideo');
+  if (v.src) URL.revokeObjectURL(v.src);
+  if (item.type === 'image') { v.removeAttribute('src'); v.poster = item.thumb; }
+  else { v.poster = ''; v.src = URL.createObjectURL(item.blob); }
+  $('#player').hidden = false;
+  v.play().catch(() => {});
+}
+function closePlayer() { $('#plVideo').pause(); $('#player').hidden = true; }
+
+/* ================= 預覽畫面拖曳 ================= */
+function canvasPoint(e) {
+  const r = pvCanvas.getBoundingClientRect();
+  return { x: (e.clientX - r.left) * pvCanvas.width / r.width, y: (e.clientY - r.top) * pvCanvas.height / r.height, rw: r.width, rh: r.height };
+}
+let drag = null;
+pvCanvas.addEventListener('pointerdown', e => {
+  if (S.view === 'vEdit' || S.view === 'vMusic' || (S.view === 'vExport' && !$('#expPrep').hidden)) { stopMusic(); togglePlay(); return; }
+  const p = canvasPoint(e);
+  if (S.view === 'vCrop' && !S.cfg.blurBg) {
+    drag = { kind: 'crop', sx: e.clientX, sy: e.clientY, cx: S.cfg.cropX, cy: S.cfg.cropY, rw: p.rw, rh: p.rh };
+  } else if (S.view === 'vText') {
+    const m = 16 * pvCanvas.width / 720;
+    const hit = [...S.textBoxes].reverse().find(b => p.x >= b.x - m && p.x <= b.x + b.w + m && p.y >= b.y - m && p.y <= b.y + b.h + m);
+    if (hit) {
+      S.textSel = hit.id; const t = selText();
+      drag = { kind: 'text', sx: e.clientX, sy: e.clientY, tx: t.x, ty: t.y, rw: p.rw, rh: p.rh };
+      renderTextUI();
+    } else { S.textSel = null; renderTextUI(); }
+    drawStill();
+  } else return;
+  try { pvCanvas.setPointerCapture(e.pointerId); } catch (_) {}
+});
+pvCanvas.addEventListener('pointermove', e => {
+  if (!drag) return;
+  const dx = e.clientX - drag.sx, dy = e.clientY - drag.sy;
+  if (drag.kind === 'crop') {
+    S.cfg.cropX = clamp(drag.cx - dx * 2 / drag.rw, -1, 1);
+    S.cfg.cropY = clamp(drag.cy - dy * 2 / drag.rh, -1, 1);
+  } else {
+    const t = selText(); if (!t) return;
+    t.x = clamp(drag.tx + dx / drag.rw, 0.02, 0.98); t.y = clamp(drag.ty + dy / drag.rh, 0.02, 0.98);
+  }
+  drawStill();
+});
+const endDrag = () => { if (drag) { drag = null; saveCfg(); } };
+pvCanvas.addEventListener('pointerup', endDrag);
+pvCanvas.addEventListener('pointercancel', endDrag);
+
+/* ================= 事件 ================= */
+function bind() {
+  $('#openCam').onclick = () => startCam();
+  $('#gateEdit').onclick = openEditor;
+  $('#shutter').onclick = shoot;
+  $('#flip').onclick = () => { if (S.recording) return; S.facing = S.facing === 'user' ? 'environment' : 'user'; startCam(); };
+  $('#durs').onclick = e => {
+    const b = e.target.closest('button'); if (!b || S.recording) return;
+    S.dur = +b.dataset.d; LS.set('dur', S.dur);
+    $$('#durs button').forEach(x => x.classList.toggle('on', x === b));
+    $('#hint').textContent = `輕點一下，自動拍 ${S.dur} 秒`;
+  };
+  $('#toEditor').onclick = openEditor;
+  $('#toDiary').onclick = () => { renderDiary(); showView('vDiary'); };
+  $('#dyClose').onclick = () => showView('vCam');
+  $('#edClose').onclick = async () => { await stopPreview(); showView('vCam'); };
+  $$('[data-back]').forEach(b => b.onclick = backToEditor);
+
+  // 編輯器
+  $('#fmtSeg').onclick = e => { const b = e.target.closest('button'); if (!b) return; S.cfg.fmt = b.dataset.k; saveCfg(); renderEditor(); drawStill(); };
+  $('#posSeg').onclick = e => { const b = e.target.closest('button'); if (!b) return; S.cfg.pos = b.dataset.k; saveCfg(); renderEditor(); drawStill(); };
+  $('#origSw').onchange = e => { S.cfg.orig = e.target.checked; saveCfg(); };
+  $('#playBtn').onclick = togglePlay;
+  $('#exportBtn').onclick = () => { if (!curItems().length) { toast('請先加入片段'); return; } openTool('vMusic'); };
+  $('#mNext').onclick = async () => { await stopPreview(); openExport(); };
+  $('#mPlay').onclick = () => { stopMusic(); togglePlay(); };
+  $('#xPlay').onclick = () => togglePlay();
+  $('#tools').onclick = e => { const b = e.target.closest('button'); if (b) openTool(b.dataset.tool); };
+  $('#tl').onclick = async e => {
+    if (e.target.closest('#addTile')) { await stopPreview(); openSheet(); return; }
+    const t = e.target.closest('.tile'); if (!t || S.playing) return;
+    const i = +t.dataset.i; S.sel = S.sel === i ? -1 : i; renderTL(); drawStill();
+  };
+  $('#tlActs').onclick = e => {
+    const b = e.target.closest('button'); if (!b || S.sel < 0) return;
+    const ids = curItems().map(c => c.id), i = S.sel, a = b.dataset.a;
+    if (a === 'left' && i > 0) { [ids[i - 1], ids[i]] = [ids[i], ids[i - 1]]; S.sel--; }
+    if (a === 'right' && i < ids.length - 1) { [ids[i + 1], ids[i]] = [ids[i], ids[i + 1]]; S.sel++; }
+    if (a === 'remove') { ids.splice(i, 1); S.sel = -1; }
+    S.timeline = ids; saveTL(); renderTL(); drawStill();
+  };
+
+  // 比例
+  $('#aspectCards').onclick = e => { const b = e.target.closest('button'); if (!b) return; S.cfg.aspect = b.dataset.a; saveCfg(); renderCrop(); drawStill(); };
+  $('#blurSw').onchange = e => { S.cfg.blurBg = e.target.checked; saveCfg(); renderCrop(); drawStill(); };
+  $('#cropReset').onclick = () => { S.cfg.cropX = 0; S.cfg.cropY = 0; saveCfg(); drawStill(); };
+
+  // 濾鏡
+  $('#fCats').onclick = e => { const b = e.target.closest('button'); if (!b) return; S.fCat = b.dataset.c; renderFilterUI(); };
+  $('#fGrid').onclick = e => {
+    const b = e.target.closest('button'); if (!b) return;
+    S.cfg.filter = b.dataset.f; saveCfg();
+    $$('#fGrid button').forEach(x => x.classList.toggle('on', x === b));
+    drawStill();
+  };
+  $('#fInt').oninput = e => { S.cfg.fInt = +e.target.value; $('#fIntV').textContent = S.cfg.fInt + '%'; drawStill(); };
+  $('#fInt').onchange = saveCfg;
+
+  // 版面
+  $('#lGrid').onclick = e => { const b = e.target.closest('button'); if (!b) return; S.cfg.layout = b.dataset.l; S.sel = -1; saveCfg(); renderLayoutUI(); drawStill(); };
+  $('#bRange').oninput = e => { S.cfg.border = +e.target.value; $('#bVal').textContent = S.cfg.border; drawStill(); };
+  $('#bRange').onchange = saveCfg;
+  $('#bColors').onclick = e => { const b = e.target.closest('button'); if (!b) return; S.cfg.bColor = b.dataset.c; saveCfg(); renderLayoutUI(); drawStill(); };
+  $('#zoomSw').onchange = e => { S.cfg.autoZoom = e.target.checked; saveCfg(); toast(S.cfg.autoZoom ? '播放時畫面會慢慢推近' : '已關閉自動變焦'); };
+
+  // 文字
+  $('#tAdd').onclick = () => addText('輸入文字');
+  $('#tInput').oninput = e => { const t = selText(); if (!t) return; t.text = e.target.value; saveCfg(); drawStill(); };
+  $('#tTabs').onclick = e => { const b = e.target.closest('button'); if (!b) return; S.tTab = b.dataset.t; renderTextUI(); };
+  $('#fontChips').onclick = e => { const b = e.target.closest('button'); if (b) updText({ font: b.dataset.font }); };
+  $('#tColors').onclick = e => { const b = e.target.closest('button'); if (b) updText({ color: b.dataset.c }); };
+  $('#styleChips').onclick = e => { const b = e.target.closest('button'); if (b) updText({ style: b.dataset.st }); };
+  $('#stickerGrid').onclick = e => { const b = e.target.closest('button'); if (b) addText(b.dataset.sk, true); };
+  $('#tSize').oninput = e => { const t = selText(); if (!t) return; t.size = +e.target.value; drawStill(); };
+  $('#tSize').onchange = saveCfg;
+  $('#scopeChips').onclick = e => {
+    const b = e.target.closest('button'); if (!b) return;
+    const pg = pages(), cells = pg[stillPageIndex()] || pg[0];
+    updText({ scope: b.dataset.s, clipId: b.dataset.s === 'clip' && cells ? cells[0].id : null });
+    if (b.dataset.s === 'clip') toast('這則文字只會出現在目前預覽的片段');
+  };
+  $('#tDel').onclick = () => { if (!S.textSel) return; S.cfg.texts = S.cfg.texts.filter(t => t.id !== S.textSel); S.textSel = null; saveCfg(); renderTextUI(); drawStill(); };
+
+  // 音樂
+  $('#mTabs').onclick = e => {
+    const b = e.target.closest('button'); if (!b) return;
+    S.mTab = b.dataset.m;
+    if (S.mTab === 'none') { stopMusic(); S.cfg.music = { kind: 'none', id: null, name: '', start: 0 }; saveCfg(); }
+    renderMusicUI();
+  };
+  $('#mCats').onclick = e => { const b = e.target.closest('button'); if (!b) return; S.mCat = b.dataset.c; renderMusicUI(); };
+  $('#mList').onclick = e => {
+    const b = e.target.closest('.track'); if (!b) return;
+    if (b.dataset.lib) { const t = TRACKS.find(x => x.id === b.dataset.lib); pickMusic({ kind: 'lib', id: t.id, name: t.name }); }
+    if (b.dataset.file) { const f = S.musicFiles.find(x => x.id === b.dataset.file); pickMusic({ kind: 'file', id: f.id, name: f.name }); }
+  };
+  $('#mImport').onclick = () => $('#mFileIn').click();
+  $('#mFileIn').onchange = async e => {
+    const f = e.target.files[0]; e.target.value = ''; if (!f) return;
+    const rec = { id: uid(), name: f.name.replace(/\.[^.]+$/, ''), blob: f };
+    try { await DB.put('music', rec); } catch (err) { toast('儲存空間不足'); return; }
+    S.musicFiles.push(rec);
+    pickMusic({ kind: 'file', id: rec.id, name: rec.name });
+  };
+  $('#mStart').oninput = e => { S.cfg.music.start = +e.target.value; $('#mStartV').textContent = mmss(S.cfg.music.start); drawWave(); };
+  $('#mStart').onchange = () => { saveCfg(); const m = S.cfg.music; if (m.kind !== 'none') { stopMusic(); pickMusic({ kind: m.kind, id: m.id, name: m.name }); } };
+  $('#mVol').oninput = e => { S.cfg.mVol = +e.target.value; $('#mVolV').textContent = S.cfg.mVol + '%'; if (musicGain && AC) musicGain.gain.setValueAtTime(S.cfg.mVol / 100, AC.currentTime); };
+  $('#mVol').onchange = saveCfg;
+  $('#oVol').oninput = e => { S.cfg.oVol = +e.target.value; $('#oVolV').textContent = S.cfg.oVol + '%'; };
+  $('#oVol').onchange = saveCfg;
+  $('#fadeSw').onchange = e => { S.cfg.fade = e.target.checked; saveCfg(); };
+
+  // 輸出
+  $('#expBack').onclick = () => {
+    if (!$('#expOut').hidden) { $('#expVideo').pause(); backToEditor(); }
+    else stopPreview().then(() => openTool('vMusic'));
+  };
+  $('#resChips').onclick = e => { const b = e.target.closest('button'); if (!b) return; S.cfg.res = +b.dataset.r; saveCfg(); $$('#resChips button').forEach(x => x.classList.toggle('on', x === b)); };
+  $('#expStart').onclick = doExport;
+  $('#expCancel').onclick = () => { if (S.sig) S.sig.stop = true; };
+  $('#expDoneBtn').onclick = () => { $('#expVideo').pause(); renderDiary(); showView('vDiary'); };
+  $$('[data-share]').forEach(b => b.onclick = () => {
+    if (!S.lastFilm) return;
+    if (b.dataset.share) toast(`在分享選單中選「${b.dataset.share}」`, 2500);
+    shareBlob(S.lastFilm.blob, fileName(S.lastFilm));
+  });
+  $$('[data-save]').forEach(b => b.onclick = () => {
+    if (!S.lastFilm) return;
+    if (b.dataset.save === 'files') downloadBlob(S.lastFilm.blob, fileName(S.lastFilm));
+    else { toast('在分享選單中選「儲存影片」', 2500); shareBlob(S.lastFilm.blob, fileName(S.lastFilm)); }
+  });
+  $$('[data-cloud]').forEach(b => b.onclick = () => {
+    if (!S.lastFilm) return;
+    const n = b.dataset.cloud;
+    toast(n.startsWith('iCloud') ? '在分享選單中選「儲存到檔案」→ iCloud 雲端硬碟' : `在分享選單中選「${n}」`, 3000);
+    shareBlob(S.lastFilm.blob, fileName(S.lastFilm));
+  });
+
+  // 片段選擇
+  $('#sheet').onclick = e => { if (e.target.id === 'sheet') closeSheet(); };
+  $('#sheetDone').onclick = closeSheet;
+  $('#importBtn').onclick = () => $('#fileIn').click();
+  $('#fileIn').onchange = e => { importFiles([...e.target.files]); e.target.value = ''; };
+  $('#addToday').onclick = () => {
+    S.timeline = S.clips.filter(c => dayKey(c.created) === dayKey(Date.now())).sort((a, b) => a.created - b.created).map(c => c.id);
+    saveTL(); renderLib();
+  };
+  $('#lib').onclick = e => {
+    const d = e.target.closest('[data-del]'); if (d) { e.stopPropagation(); deleteClip(d.dataset.del); return; }
+    const c = e.target.closest('.cell'); if (!c) return;
+    const id = c.dataset.id, i = S.timeline.indexOf(id);
+    if (i >= 0) S.timeline.splice(i, 1); else S.timeline.push(id);
+    saveTL(); renderLib();
+  };
+
+  // 日記 / 播放器
+  $('#films').onclick = e => { const c = e.target.closest('[data-film]'); if (c) openPlayer('films', S.films.find(f => f.id === c.dataset.film)); };
+  $('#allClips').onclick = e => { const c = e.target.closest('[data-clip]'); if (c) openPlayer('clips', S.clips.find(f => f.id === c.dataset.clip)); };
+  $('#plClose').onclick = closePlayer;
+  $('#plShare').onclick = () => {
+    const p = S.player; if (!p) return;
+    if (p.kind === 'films') shareBlob(p.item.blob, fileName(p.item));
+    else {
+      const ext = p.item.type === 'image' ? 'jpg' : ((p.item.blob.type || '').includes('webm') ? 'webm' : 'mp4');
+      shareBlob(p.item.blob, `瞬記片段_${dayKey(p.item.created)}_${hm(p.item.created).replace(':', '')}.${ext}`);
+    }
+  };
+  $('#plDel').onclick = async () => {
+    const p = S.player; if (!p || !confirm('確定要刪除嗎？')) return;
+    try { await DB.del(p.kind, p.item.id); } catch (e) {}
+    if (p.kind === 'films') S.films = S.films.filter(f => f.id !== p.item.id);
+    else { S.clips = S.clips.filter(c => c.id !== p.item.id); saveTL(); refreshCamUI(); }
+    closePlayer(); renderDiary();
+  };
+
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) { stopCam(); stopMusic(); }
+    else if (S.view === 'vCam' && S.camWanted) startCam();
+  });
+}
+
+/* ================= App 圖示 ================= */
+function makeIcon() {
+  const c = document.createElement('canvas'); c.width = c.height = 180;
+  const x = c.getContext('2d');
+  const g = x.createLinearGradient(0, 0, 180, 180); g.addColorStop(0, '#ffb15c'); g.addColorStop(1, '#ff6a1f');
+  x.fillStyle = g; x.fillRect(0, 0, 180, 180);
+  x.strokeStyle = '#fff'; x.lineWidth = 9; x.beginPath(); x.arc(90, 90, 52, 0, Math.PI * 2); x.stroke();
+  x.fillStyle = '#fff'; x.beginPath(); x.arc(90, 90, 40, 0, Math.PI * 2); x.fill();
+  x.fillStyle = '#ff7a1f'; x.font = '800 34px -apple-system,Helvetica,sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle';
+  x.fillText('1s', 90, 92);
+  $('#appIcon').href = c.toDataURL('image/png');
+}
+
+/* ================= 啟動 ================= */
+async function init() {
+  if (!FILTERS[S.cfg.filter]) S.cfg.filter = 'none';
+  if (!LAYOUTS[S.cfg.layout]) S.cfg.layout = 'one';
+  makeIcon(); bind();
+  $$('#durs button').forEach(b => b.classList.toggle('on', +b.dataset.d === S.dur));
+  $('#hint').textContent = `輕點一下，自動拍 ${S.dur} 秒`;
+  try {
+    await DB.open();
+    S.clips = (await DB.all('clips')).sort((a, b) => a.created - b.created);
+    S.films = (await DB.all('films')).sort((a, b) => b.created - a.created);
+    S.musicFiles = await DB.all('music');
+  } catch (e) { toast('無法使用儲存空間（請關閉無痕瀏覽）'); }
+  try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist(); } catch (e) {}
+  if (S.cfg.music.kind === 'file' && !S.musicFiles.some(f => f.id === S.cfg.music.id)) S.cfg.music = { kind: 'none', id: null, name: '', start: 0 };
+  S.mTab = S.cfg.music.kind === 'none' ? 'lib' : S.cfg.music.kind;
+  saveTL(); refreshCamUI();
+}
+window.__shunji = { MX, FILTERS, applyMatrix, fxToon, fxSketch, boxBlur, cellRects, S, LAYOUTS };
+init();
+})();
+</script>
+</body>
+</html>

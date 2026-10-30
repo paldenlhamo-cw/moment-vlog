@@ -100,7 +100,7 @@ header .iconBtn{background:var(--panel2)}
 
 /* ---------- Editor ---------- */
 #vEdit .slot{flex:1;min-height:0;padding:4px 0}
-.play{position:absolute;width:64px;height:64px;border-radius:50%;background:rgba(0,0,0,.5);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);display:grid;place-items:center;font-size:22px;z-index:2}
+.play{pointer-events:none;position:absolute;width:64px;height:64px;border-radius:50%;background:rgba(0,0,0,.5);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);display:grid;place-items:center;font-size:22px;z-index:2}
 .play.playing{opacity:0}
 .empty{position:absolute;text-align:center;color:var(--dim);line-height:1.7;z-index:2}
 .pbar{height:3px;margin:8px 24px 0;background:var(--line);border-radius:3px;overflow:hidden;flex:none}
@@ -262,6 +262,7 @@ header .iconBtn{background:var(--panel2)}
     <button id="playBtn" class="play" aria-label="播放">▶</button>
   </div>
   <div class="pbar"><i id="pvBar"></i></div>
+  <p class="hint2" style="margin-top:4px;font-size:12px">點畫面播放・按住文字可以拖曳到任何位置</p>
   <div class="opts">
     <div class="row"><span class="lab">時間</span><div class="chips" id="fmtSeg"></div></div>
     <div class="row" id="posRow"><span class="lab">位置</span><div class="chips" id="posSeg"></div></div>
@@ -340,6 +341,7 @@ header .iconBtn{background:var(--panel2)}
   <div class="spacer"></div>
   <div class="card2">
     <div class="row"><span class="lab" style="width:48px">大小</span><input type="range" class="rng" id="tSize" min="20" max="180"><button class="pill danger" id="tDel">刪除</button></div>
+    <div class="row"><span class="lab" style="width:48px">微調</span><div class="chips" id="nudge"><button data-n="l" aria-label="往左">◀</button><button data-n="u" aria-label="往上">▲</button><button data-n="d" aria-label="往下">▼</button><button data-n="r" aria-label="往右">▶</button><button data-n="c">水平置中</button></div></div>
     <div class="row"><span class="lab" style="width:48px">出現在</span><div class="chips" id="scopeChips"><button data-s="clip">只有這段</button><button data-s="all">整支影片</button></div></div>
   </div>
 </section>
@@ -693,8 +695,12 @@ async function importFiles(files) {
     } catch (e) { console.warn(e); }
   }
   S.clips.sort((a, b) => a.created - b.created);
-  saveTL(); renderLib(); renderTL(); refreshCamUI(); drawStill();
-  toast(n ? `已匯入 ${n} 個（影片取前 3 秒）` : '匯入失敗');
+  saveTL(); renderLib(); renderTL(); refreshCamUI();
+  if (n) {
+    $('#sheet').classList.remove('on'); S.sel = -1;
+    await openTool('vLayout');
+    toast(`已匯入 ${n} 個，接著選一個版面吧`, 2800);
+  } else { drawStill(); toast('匯入失敗'); }
 }
 
 /* ================= 版面 ================= */
@@ -946,27 +952,43 @@ function drawStamp(ctx, ts) {
   const f = S.cfg.fmt; if (f === 'off') return;
   const W = ctx.canvas.width, H = ctx.canvas.height, u = W / 720, d = new Date(ts);
   const FF = '-apple-system,"SF Pro Display","PingFang TC","Helvetica Neue",sans-serif';
+  const free = S.cfg.pos === 'free' && S.cfg.stampX != null;
+  let box;
   ctx.save();
   ctx.fillStyle = '#fff'; ctx.shadowColor = 'rgba(0,0,0,.5)'; ctx.shadowBlur = 14 * u;
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
   if (f === 'clock') {
-    ctx.textAlign = 'center';
-    const top = H > W ? 300 * u : 230 * u;
-    ctx.font = `700 ${168 * u}px ${FF}`; ctx.fillText(hm(ts), W / 2, top);
-    ctx.font = `600 ${36 * u}px ${FF}`;
-    ctx.fillText(d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' }), W / 2, top + 56 * u);
+    const cx = free ? S.cfg.stampX * W : W / 2;
+    const cy = free ? S.cfg.stampY * H : (H > W ? 260 * u : 190 * u);
+    const date = d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+    ctx.font = `700 ${168 * u}px ${FF}`; const w1 = ctx.measureText(hm(ts)).width; ctx.fillText(hm(ts), cx, cy - 24 * u);
+    ctx.font = `600 ${36 * u}px ${FF}`; const w2 = ctx.measureText(date).width; ctx.fillText(date, cx, cy + 80 * u);
+    const bw = Math.max(w1, w2);
+    box = { x: cx - bw / 2, y: cy - 110 * u, w: bw, h: 214 * u };
   } else {
     let txt;
     if (f === 'zh') txt = `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日 星期${WK[d.getDay()]}`;
     else if (f === 'en') txt = d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
     else txt = `${d.getFullYear()}.${pad(d.getMonth() + 1)}.${pad(d.getDate())}  ${hm(ts)}`;
     ctx.font = `600 ${38 * u}px ${FF}`;
-    const m = 48 * u, p = S.cfg.pos;
-    ctx.textAlign = p === 'br' ? 'right' : p === 'bc' ? 'center' : 'left';
-    const x = p === 'br' ? W - m : p === 'bc' ? W / 2 : m;
-    const y = p === 'tl' ? 120 * u : H - 90 * u;
-    ctx.fillText(txt, x, y);
+    const tw = ctx.measureText(txt).width, m = 48 * u, p = S.cfg.pos;
+    let cx, cy;
+    if (free) { cx = S.cfg.stampX * W; cy = S.cfg.stampY * H; }
+    else {
+      cx = p === 'br' ? W - m - tw / 2 : p === 'bc' ? W / 2 : m + tw / 2;
+      cy = p === 'tl' ? 108 * u : H - 102 * u;
+    }
+    ctx.fillText(txt, cx, cy);
+    box = { x: cx - tw / 2, y: cy - 24 * u, w: tw, h: 48 * u };
   }
   ctx.restore();
+  box.id = '__stamp';
+  S.textBoxes.push(box);
+}
+function moveStampToFree() {
+  if (S.cfg.pos === 'free') return;
+  const b = S.textBoxes.find(x => x.id === '__stamp'); if (!b) return;
+  S.cfg.stampX = (b.x + b.w / 2) / pvCanvas.width; S.cfg.stampY = (b.y + b.h / 2) / pvCanvas.height; S.cfg.pos = 'free';
 }
 
 /* ================= 合成一格畫面 ================= */
@@ -1005,7 +1027,7 @@ async function drawStill() {
   const srcs = await Promise.all(cells.map(stillSource));
   if (token !== S.stillToken || S.playing) return;
   composeFrame(pvCtx, cells, srcs, 0);
-  if (S.view === 'vText') drawTextSelection(pvCtx);
+  if (S.view === 'vText' || (drag && drag.kind === 'text')) drawTextSelection(pvCtx);
   if (S.view === 'vLayout' && LAYOUTS[S.cfg.layout].n > 1) {
     const u = W / 720;
     cellRects(W, H).forEach((r, j) => {
@@ -1262,7 +1284,7 @@ const POSS = [['bl', '左下'], ['bc', '置中'], ['br', '右下'], ['tl', '左�
 function chipsHTML(list, cur, attr) { return list.map(([k, l]) => `<button data-${attr}="${k}" class="${cur === k ? 'on' : ''}">${l}</button>`).join(''); }
 function renderEditor() {
   $('#fmtSeg').innerHTML = chipsHTML(FMTS, S.cfg.fmt, 'k');
-  $('#posSeg').innerHTML = chipsHTML(POSS, S.cfg.pos, 'k');
+  $('#posSeg').innerHTML = chipsHTML(S.cfg.pos === 'free' ? POSS.concat([['free', '自訂']]) : POSS, S.cfg.pos, 'k');
   $('#posRow').hidden = S.cfg.fmt === 'off' || S.cfg.fmt === 'clock';
   $('#origSw').checked = S.cfg.orig;
   $('#tvCrop').textContent = S.cfg.aspect;
@@ -1365,14 +1387,18 @@ function renderTextUI() {
   $('#stickerGrid').innerHTML = STICKERS.map(s => `<button data-sk="${s}">${s}</button>`).join('');
   $('#tSize').value = t ? t.size : 56;
   $$('#scopeChips button').forEach(b => b.classList.toggle('on', !!t && t.scope === b.dataset.s));
-  $('#textHint').textContent = S.cfg.texts.length ? '點文字選取，拖曳可以移動' : '點「＋ 新增文字」或「貼圖」開始';
+  $('#textHint').textContent = S.textSel === '__stamp' ? '已選取日期時間：拖曳或用微調移動，格式在剪輯畫面設定'
+    : '按住畫面上的任何文字（包括日期）都可以拖曳';
+  $('#tInput').placeholder = S.textSel === '__stamp' ? '日期時間的文字會自動產生' : '點「＋ 新增文字」開始';
 }
 function addText(text, sticker) {
   const t = { id: uid(), text, x: .5, y: sticker ? .45 : .3, size: sticker ? 110 : 56, font: 'bold', color: '#ffffff', style: 'shadow', scope: 'all', clipId: null, sticker: !!sticker };
   S.cfg.texts.push(t); S.textSel = t.id; saveCfg(); renderTextUI(); drawStill();
   if (!sticker) { const i = $('#tInput'); i.focus(); i.select(); }
 }
-function updText(patch) { const t = selText(); if (!t) { toast('請先點選一則文字'); return; } Object.assign(t, patch); saveCfg(); renderTextUI(); drawStill(); }
+function updText(patch) {
+  if (S.textSel === '__stamp') { toast('日期時間只能移動位置，格式請在剪輯畫面設定'); return; }
+  const t = selText(); if (!t) { toast('請先點選一則文字'); return; } Object.assign(t, patch); saveCfg(); renderTextUI(); drawStill(); }
 
 /* ---------- 音樂 ---------- */
 const MCATS = ['全部', '輕快', '溫柔', '旅行', 'Lo-fi'];
@@ -1571,20 +1597,38 @@ function canvasPoint(e) {
   return { x: (e.clientX - r.left) * pvCanvas.width / r.width, y: (e.clientY - r.top) * pvCanvas.height / r.height, rw: r.width, rh: r.height };
 }
 let drag = null;
+function hitText(p) {
+  const m = 18 * pvCanvas.width / 720;
+  return [...S.textBoxes].reverse().find(b => p.x >= b.x - m && p.x <= b.x + b.w + m && p.y >= b.y - m && p.y <= b.y + b.h + m);
+}
+function startTextDrag(e, p, hit) {
+  S.textSel = hit.id;
+  if (hit.id === '__stamp') moveStampToFree();
+  const pos = itemPos(hit.id);
+  drag = { kind: 'text', id: hit.id, sx: e.clientX, sy: e.clientY, tx: pos.x, ty: pos.y, rw: p.rw, rh: p.rh, moved: false };
+}
+function itemPos(id) {
+  if (id === '__stamp') return { x: S.cfg.stampX, y: S.cfg.stampY };
+  const t = S.cfg.texts.find(x => x.id === id); return t ? { x: t.x, y: t.y } : { x: .5, y: .5 };
+}
+function setItemPos(id, x, y) {
+  x = clamp(x, 0.02, 0.98); y = clamp(y, 0.02, 0.98);
+  if (id === '__stamp') { moveStampToFree(); S.cfg.stampX = x; S.cfg.stampY = y; S.cfg.pos = 'free'; return; }
+  const t = S.cfg.texts.find(z => z.id === id); if (t) { t.x = x; t.y = y; }
+}
 pvCanvas.addEventListener('pointerdown', e => {
-  if (S.view === 'vEdit' || S.view === 'vMusic' || (S.view === 'vExport' && !$('#expPrep').hidden)) { stopMusic(); togglePlay(); return; }
   const p = canvasPoint(e);
+  if (S.view === 'vEdit' && !S.playing) {
+    const hit = hitText(p);
+    if (hit) { startTextDrag(e, p, hit); drawStill(); try { pvCanvas.setPointerCapture(e.pointerId); } catch (_) {} return; }
+  }
+  if (S.view === 'vEdit' || S.view === 'vMusic' || (S.view === 'vExport' && !$('#expPrep').hidden)) { stopMusic(); togglePlay(); return; }
   if (S.view === 'vCrop' && !S.cfg.blurBg) {
     drag = { kind: 'crop', sx: e.clientX, sy: e.clientY, cx: S.cfg.cropX, cy: S.cfg.cropY, rw: p.rw, rh: p.rh };
   } else if (S.view === 'vText') {
-    const m = 16 * pvCanvas.width / 720;
-    const hit = [...S.textBoxes].reverse().find(b => p.x >= b.x - m && p.x <= b.x + b.w + m && p.y >= b.y - m && p.y <= b.y + b.h + m);
-    if (hit) {
-      S.textSel = hit.id; const t = selText();
-      drag = { kind: 'text', sx: e.clientX, sy: e.clientY, tx: t.x, ty: t.y, rw: p.rw, rh: p.rh };
-      renderTextUI();
-    } else { S.textSel = null; renderTextUI(); }
-    drawStill();
+    const hit = hitText(p);
+    if (hit) startTextDrag(e, p, hit); else S.textSel = null;
+    renderTextUI(); drawStill();
   } else return;
   try { pvCanvas.setPointerCapture(e.pointerId); } catch (_) {}
 });
@@ -1595,12 +1639,17 @@ pvCanvas.addEventListener('pointermove', e => {
     S.cfg.cropX = clamp(drag.cx - dx * 2 / drag.rw, -1, 1);
     S.cfg.cropY = clamp(drag.cy - dy * 2 / drag.rh, -1, 1);
   } else {
-    const t = selText(); if (!t) return;
-    t.x = clamp(drag.tx + dx / drag.rw, 0.02, 0.98); t.y = clamp(drag.ty + dy / drag.rh, 0.02, 0.98);
+    if (Math.abs(dx) + Math.abs(dy) > 3) drag.moved = true;
+    setItemPos(drag.id, drag.tx + dx / drag.rw, drag.ty + dy / drag.rh);
   }
   drawStill();
 });
-const endDrag = () => { if (drag) { drag = null; saveCfg(); } };
+const endDrag = () => {
+  if (!drag) return;
+  const wasEditText = drag.kind === 'text' && S.view === 'vEdit';
+  drag = null; saveCfg();
+  if (wasEditText) { renderEditor(); drawStill(); }
+};
 pvCanvas.addEventListener('pointerup', endDrag);
 pvCanvas.addEventListener('pointercancel', endDrag);
 
@@ -1685,7 +1734,17 @@ function bind() {
     updText({ scope: b.dataset.s, clipId: b.dataset.s === 'clip' && cells ? cells[0].id : null });
     if (b.dataset.s === 'clip') toast('這則文字只會出現在目前預覽的片段');
   };
-  $('#tDel').onclick = () => { if (!S.textSel) return; S.cfg.texts = S.cfg.texts.filter(t => t.id !== S.textSel); S.textSel = null; saveCfg(); renderTextUI(); drawStill(); };
+  $('#nudge').onclick = e => {
+    const b = e.target.closest('button'); if (!b) return;
+    const id = S.textSel; if (!id) { toast('請先點選畫面上的文字'); return; }
+    if (id === '__stamp') moveStampToFree();
+    const p = itemPos(id), st = 0.01, n = b.dataset.n;
+    setItemPos(id, n === 'c' ? .5 : p.x + (n === 'l' ? -st : n === 'r' ? st : 0), p.y + (n === 'u' ? -st : n === 'd' ? st : 0));
+    saveCfg(); drawStill();
+  };
+  $('#tDel').onclick = () => {
+    if (S.textSel === '__stamp') { S.cfg.fmt = 'off'; S.textSel = null; saveCfg(); renderTextUI(); drawStill(); toast('已隱藏日期時間，可在剪輯畫面重新開啟'); return; }
+    if (!S.textSel) return; S.cfg.texts = S.cfg.texts.filter(t => t.id !== S.textSel); S.textSel = null; saveCfg(); renderTextUI(); drawStill(); };
 
   // 音樂
   $('#mTabs').onclick = e => {
